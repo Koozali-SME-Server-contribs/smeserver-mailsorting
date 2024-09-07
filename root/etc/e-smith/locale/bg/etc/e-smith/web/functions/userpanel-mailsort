@@ -1,0 +1,142 @@
+<lexicon lang="bg">
+    <entry>
+        <base>Process Mail</base>
+        <trans>Обработка на поща</trans>
+    </entry>
+    <entry>
+        <base>configure your email sorting</base>
+        <trans>настройка на сортирането на поща</trans>
+    </entry>
+    <entry>
+      <base>FORM_TITLE</base>
+      <trans>Правила за сортиране на поща</trans>
+    </entry>
+    <entry>
+      <base>FORM_DESCRIPTION</base>
+      <trans>Правилата се изпълняват при пристигането на поща във Вашата кутия на сървъра и не зависят от пощенския клиент. Текущите Ви правила, ако имате такива са показани тук.</trans>
+    </entry>
+    <entry>
+      <base>ADD_RULE</base>
+      <trans><![CDATA[ <a class="button-like" href="userpanel-mailsort?page=0&page_stack=&Next=Next&key=new&basis=Subject&action=sort&RULE_MODIFY">Добави ново правило</a> ]]></trans>
+    </entry>
+    <entry>
+      <base>CURRENT_RULES</base>
+      <trans>Текущи правила</trans>
+    </entry>
+    <entry>
+      <base>REMOVE_DESCRIPTION</base>
+      <trans>Ще премахнете правило</trans>
+    </entry>
+    <entry>
+      <base>ERROR_UPDATING</base>
+      <trans>Грешка при обновяване</trans>
+    </entry>
+    <entry>
+      <base>CREATE_RULE_DESCRIPTION</base>
+      <trans>Изберете част от съобщението за проверка. Можете да проверявате спрямо ел. адрес, заглавната част, относно-то, или размера на съобщението. Размерите са в байтове. Изтрийте, сортирайте или препратете при съвпадение. Второто съвпадение е по желание, но ако се използва тогава и двете проверки трябва да са изпълнени.</trans>
+    </entry>
+    <entry>
+      <base>MODIFY_RULE_DESCRIPTION</base>
+      <trans><![CDATA[ <p> Промяна на правило. </p><p> Можете да промените реда в който правилата се обработват като промените числото в полето за ред на изпълнение. Приоритета се определя от ASCII стойността, и трябва да е уникален. например, правило user101 се изпълнява първо, след което user5 и тогава user99 </p> ]]></trans>
+    </entry>
+    <entry>
+      <base>BASIS</base>
+      <trans>Проверка спрямо</trans>
+    </entry>
+    <entry>
+      <base>2ND_BASIS</base>
+      <trans>2-ра проверка</trans>
+    </entry>
+    <entry>
+      <base>CRITERION</base>
+      <trans>Правило</trans>
+    </entry>
+    <entry>
+      <base>2ND_CRITERION</base>
+      <trans>2-ро правило</trans>
+    </entry>
+    <entry>
+      <base>DELIVER</base>
+      <trans>ел. адрес (ако се препраща)</trans>
+    </entry>
+    <entry>
+      <base>EMAIL</base>
+      <trans>ел. адрес (ако се препраща)</trans>
+    </entry>
+    <entry>
+      <base>FOLDER</base>
+      <trans>Папка (ако се сортира)</trans>
+    </entry>
+    <entry>
+      <base>COPY_TO</base>
+      <trans>Преп</trans>
+    </entry>
+    <entry>
+      <base>COPY</base>
+      <trans>Копиране</trans>
+    </entry>
+    <entry>
+      <base>2ND_ACTION</base>
+      <trans>2-ро действие</trans>
+    </entry>
+    <entry>
+      <base>SORT</base>
+      <trans>Сортирай в папка с поща</trans>
+    </entry>
+    <entry>
+      <base>FORWARD</base>
+      <trans>Препращане на писмо</trans>
+    </entry>
+    <entry>
+      <base>DELETE</base>
+      <trans>Изтриване на писмо</trans>
+    </entry>
+    <entry>
+      <base>INBOX</base>
+      <trans>Прати в папката Входящи</trans>
+    </entry>
+    <entry>
+      <base>PRIORITY</base>
+      <trans>Последователност на изпълнение на правилата</trans>
+    </entry>
+    <entry>
+      <base>Subject</base>
+      <trans>Относно</trans>
+    </entry>
+    <entry>
+      <base>TO_</base>
+      <trans>До</trans>
+    </entry>
+    <entry>
+      <base>From</base>
+      <trans>От</trans>
+    </entry>
+    <entry>
+      <base>headers</base>
+      <trans>Заглавна част на писмо</trans>
+    </entry>
+    <entry>
+      <base>sizegt</base>
+      <trans>Размер по-голям от</trans>
+    </entry>
+    <entry>
+      <base>sizelt</base>
+      <trans>Размер по-малък от</trans>
+    </entry>
+    <entry>
+      <base>ERROR_FORWARD_NO_EMAIL</base>
+      <trans>Грешка: Изисква папка за да сортира в нея или ел. адрес за да препрати към</trans>
+    </entry>
+    <entry>
+      <base>NO_RULES</base>
+      <trans>Нямате никакви правила</trans>
+    </entry>
+    <entry>
+      <base>FILTERTYPE_DISABLED</base>
+      <trans>Сортирането на пощата беше изключена, моля, обърнете с към администратора.</trans>
+    </entry>
+    <entry>
+      <base>USER_DISABLED</base>
+      <trans>Сортирането на поща беше изключено за този потребител, моля, обърнете се към администратора.</trans>
+    </entry>
+</lexicon>

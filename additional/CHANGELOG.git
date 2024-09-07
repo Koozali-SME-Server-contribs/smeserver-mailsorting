@@ -1,0 +1,40 @@
+commit 3966ffe4535843d7b3c2654299e543aa3350cc27
+Author: Stephane de Labrusse <stephdl@de-labrusse.fr>
+Date:   Tue Dec 2 07:32:45 2014 +0100
+
+    sievesupport disabled by default
+
+commit b9f552f3a0aed34f14feee0e59b722351bb7be0c
+Author: Stephane de Labrusse <stephdl@de-labrusse.fr>
+Date:   Tue Dec 2 01:19:37 2014 +0100
+
+    * Tue Dec 2 2014 stephane de Labrusse <stephdl@de-labrusse.fr> 1.4-2.sme
+    - allow the possibility to use sieve script if no rules has matched.
+    - Code developed by <m.schuh@neckargeo.net> Mats Schuh
+
+commit 2acccdf718159f4bf6090a11d28a77b4e1e54aa9
+Author: mats-ng <mats-ng@users.noreply.github.com>
+Date:   Sun Nov 30 02:01:59 2014 +0100
+
+    Modified user template for .procmailrc to deliver mails through dovecot if Sieve is enabled for the server and if procmail doesn't match rules
+    Added sieve detection for user .mailfilter file. Mail is sent further to dovecot if sieve is enabled for the server and if maildrop doesn't match rules
+    The use of sieve is enable by default, can be disable by user 'db accounts setprop user Sieve disabled' signal-event mailsorting-conf
+    Code developed by <m.schuh@neckargeo.net> Mats Schuh
+
+commit 0b1b68419e6281e42be1209f189681b5175c88a9
+Author: Stephane de Labrusse <stephdl@de-labrusse.fr>
+Date:   Wed Sep 3 17:55:25 2014 +0200
+
+    first release to sme9
+
+commit 90281b42942c78a1cac1cf7c8bda587549421a78
+Author: Stephane de Labrusse <stephdl@de-labrusse.fr>
+Date:   Wed Sep 3 17:52:55 2014 +0200
+
+    first release to sme9
+
+commit bea9d8cf84cb171ef66b76b885750b8fde02e5b8
+Author: Stephane de Labrusse <stephdl@de-labrusse.fr>
+Date:   Mon Jun 23 18:48:25 2014 +0200
+
+    first commit to SME Server 9
