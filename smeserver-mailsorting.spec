@@ -6,7 +6,7 @@ Summary: Lets users configure procmail or maildrop rules.
 %define name smeserver-mailsorting
 Name: %{name}
 %define version 1.4
-%define release 16
+%define release 17
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -16,14 +16,14 @@ Source: %{name}-%{version}.tar.xz
 
 BuildArchitectures: noarch
 BuildRoot: /var/tmp/%{name}-%{version}
-Requires:  e-smith-release >= 9.0
+Requires: smeserver-release >= 9.0
 Requires: perl-Unicode-IMAPUtf7
-Requires: e-smith-formmagick >= 1.4.0-12
+Requires: smeserver-formmagick >= 1.4.0-12
 Requires: perl-File-Find-Rule >= 0.33
 Requires: maildrop
 Requires: procmail
 #Requires:  smeserver-userpanel, userpanel causes endless problems
-BuildRequires: e-smith-devtools >= 1.13.1-03
+BuildRequires: smeserver-devtools >= 1.13.1-03
 AutoReqProv: no
 
 %description
@@ -31,6 +31,9 @@ SME Server enhancement to enable procmail or maildrop filtering for users.
 Optionally provides user panels where users can create mail rules for themselves
 
 %changelog
+* Sun Sep 08 2024 fix-e-smith-pkg.sh by Trevor Batley <trevor@batley.id.au> 1.4-17.sme
+- Fix e-smith references in smeserver-mailsorting [SME: 12732]
+
 * Sat Sep 07 2024 cvs2git.sh aka Brian Read <brianr@koozali.org> 1.4-16.sme
 - Roll up patches and move to git repo [SME: 12338]
 
