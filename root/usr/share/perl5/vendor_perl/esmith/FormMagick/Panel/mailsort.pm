@@ -12,8 +12,9 @@ use esmith::util;
 use esmith::FormMagick;
 use esmith::AccountsDB;
 use esmith::ConfigDB;
-use Unicode::IMAPUtf7;
-use Unicode::String qw(utf8 latin1);
+#use Unicode::IMAPUtf7;
+#use Unicode::String qw(utf8 latin1);
+use Encode qw(decode);
 
 use Exporter;
 use Carp qw(verbose);
@@ -342,14 +343,22 @@ sub save_rule
     return $self->success("SUCCESS");
 }
 
-sub GetDisplayName ($)
-{
-	my $s = shift;
-	my $t = Unicode::IMAPUtf7->new();
-	$s =~ s/(.*)//; # untaint it
-	my $u = utf8($t->decode($1));
-	return $u->utf8;#$u->latin1;
+#sub GetDisplayName ($)
+#{
+	#my $s = shift;
+	#my $t = Unicode::IMAPUtf7->new();
+	#$s =~ s/(.*)//; # untaint it
+	#my $u = utf8($t->decode($1));
+	#return $u->utf8;#$u->latin1;
+#}
+
+sub GetDisplayName {
+    my ($s) = @_;
+    $s =~ s/(.*)//;   # untaint the input
+    my $decoded = decode('IMAP-UTF-7', $1);
+    return $decoded;
 }
+
 
 sub listfolders
 {

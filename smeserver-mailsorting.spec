@@ -5,8 +5,8 @@
 Summary: Lets users configure procmail or maildrop rules.
 %define name smeserver-mailsorting
 Name: %{name}
-%define version 1.4
-%define release 17
+%define version 11.0.0
+%define release 2
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -15,13 +15,14 @@ Group: SMEserver/addon
 Source: %{name}-%{version}.tar.xz
 
 BuildArchitectures: noarch
-BuildRoot: /var/tmp/%{name}-%{version}
+ BuildRoot: /var/tmp/%{name}-%{version}
 Requires: smeserver-release >= 9.0
-Requires: perl-Unicode-IMAPUtf7
+#Requires: perl-Unicode-IMAPUtf7
 Requires: smeserver-formmagick >= 1.4.0-12
 Requires: perl-File-Find-Rule >= 0.33
 Requires: maildrop
 Requires: procmail
+Requires: perl-Encode-IMAPUTF7
 #Requires:  smeserver-userpanel, userpanel causes endless problems
 BuildRequires: smeserver-devtools >= 1.13.1-03
 AutoReqProv: no
@@ -31,6 +32,13 @@ SME Server enhancement to enable procmail or maildrop filtering for users.
 Optionally provides user panels where users can create mail rules for themselves
 
 %changelog
+* Mon May 05 2025 Brian Read <brianr@koozali.org> 11.0.0-2.sme
+- Add first go at SM2 panels - still wip
+
+* Fri May 02 2025 Brian Read <brianr@koozali.org> 11.0.0-1.sme
+- Initial build for SME11 [SME: ]
+- Remove use of Unicode::IMAPUtf7 as no rpm for Rocky8
+
 * Sun Sep 08 2024 fix-e-smith-pkg.sh by Trevor Batley <trevor@batley.id.au> 1.4-17.sme
 - Fix e-smith references in smeserver-mailsorting [SME: 12732]
 
@@ -299,6 +307,7 @@ echo "%doc COPYING"  >> %{name}-%{version}-filelist
 %clean
 
 %pre
+
 %preun
 
 %post
@@ -306,7 +315,7 @@ echo "%doc COPYING"  >> %{name}-%{version}-filelist
 if [ $1 = 1 ] ; then
  echo ''
  echo '#############################################################'
- echo '  Please visit the url below to apprehend all the db commands'
+ echo '  Please visit the url below to understand all the db commands'
  echo '  http://wiki.contribs.org/Mailsorting#Configuration         '
  echo '#############################################################'
  echo ''
