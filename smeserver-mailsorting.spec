@@ -15,7 +15,7 @@ Group: SMEserver/addon
 Source: %{name}-%{version}.tar.xz
 
 BuildArchitectures: noarch
- BuildRoot: /var/tmp/%{name}-%{version}
+BuildRoot: /var/tmp/%{name}-%{version}
 Requires: smeserver-release >= 9.0
 #Requires: perl-Unicode-IMAPUtf7
 Requires: smeserver-formmagick >= 1.4.0-12
@@ -33,7 +33,7 @@ Optionally provides user panels where users can create mail rules for themselves
 
 %changelog
 * Mon May 05 2025 Brian Read <brianr@koozali.org> 11.0.0-2.sme
-- Add first go at SM2 panels - still wip
+- Add first go at SM2 panels [SME: 13000]
 
 * Fri May 02 2025 Brian Read <brianr@koozali.org> 11.0.0-1.sme
 - Initial build for SME11 [SME: ]

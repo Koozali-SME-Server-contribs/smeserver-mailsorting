@@ -12,7 +12,7 @@ package SrvMngr::Controller::Mailsorting;
 # name : mailsorting,    method : get,   url : /mailsorting,   ctlact : Mailsorting#main
 # name : mailsortingu,   method : post,  url : /mailsortingu,  ctlact : Mailsorting#do_update
 # name : mailsortingd,   method : get,   url : /mailsortingd,  ctlact : Mailsorting#do_display
-
+# name : mailsortinge,   method : post,   url : /mailsortinge,  ctlact : Mailsorting#do_update
 #
 # routes : end
 #

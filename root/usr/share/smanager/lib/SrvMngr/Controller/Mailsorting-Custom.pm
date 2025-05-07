@@ -111,27 +111,27 @@ my $pdb;
 		return %ret;
 	}
 
-	sub get_data_for_panel_RULES {
-		# Return a hash with the fields required which will be loaded into the shared data 
-		my $c = shift;
-		my %ret = (
-			'Data1'=>'Data for RULES', #Example
-			# fields from Inputs in RULES $fields['RULES']
-			'basis'=>'basis contents',
-			'criterion'=>'criterion contents',
-			'basis2'=>'basis2 contents',
-			'criterion2'=>'criterion2 contents',
-			'action'=>'action contents',
-			'deliver'=>'deliver contents',
-			'folder'=>'folder contents',
-			'copy'=>'copy contents',
-			'action2'=>'action2 contents',
-			'deliver2'=>'deliver2 contents',
-			'key'=>'key contents',
-			
-		);
-		return %ret;
-	}
+sub get_data_for_panel_RULES {
+    # Return a hash with the fields required which will be loaded into the shared data 
+    my $c = shift;
+    my $pdb = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+    my $PanelUser = $c->get_panel_user();
+    my $key = $c->param('Selected');
+
+    # Get the rule object from the DB
+    my $rule = $pdb->get($key);
+    return () unless $rule;
+
+    # Use the new routine to get rule data
+    my $rule_info = get_rule_from_db($c, $rule);
+
+    # Add/override any fields specific to the panel as needed
+    my %ret = (
+        %$rule_info,
+    );
+
+    return %ret;
+}
 
 	sub get_data_for_panel_REMOVE {
 		# Return a hash with the fields required which will be loaded into the shared data 
@@ -167,72 +167,36 @@ my $pdb;
 	);
 	
 sub actual_getAllRules {
-	my $c = shift;
-	my @ret = ();
-	# Actual code for extracting getAllRules
-	$cdb  = esmith::ConfigDB->open();
-	$adb = esmith::AccountsDB->open();
-	$pdb = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
-	my $PanelUser = $c->get_panel_user();
+    my $c = shift;
+    my @data;
+
+    # Open the required databases
+    my $cdb  = esmith::ConfigDB->open();
+    my $adb  = esmith::AccountsDB->open();
+    my $pdb  = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+    my $PanelUser = $c->get_panel_user();
+
     my @rules = $pdb->get_all_by_prop(type => "$PanelUser");
     return $c->l("NO_RULES") if (@rules == 0);
-    foreach my $rule (@rules)
-    {
-        my $key        = $rule->key;
-        my $basis      = $rule->prop("basis")     || '';
-        my $basis2     = $rule->prop("basis2")    || '';
-        my $deliver    = $rule->prop("deliver")   || '';
-        my $deliver2   = $rule->prop("deliver2")  || '';
-        my $action     = $rule->prop("action")    || '';
-        my $action2    = $rule->prop("action2")   || '';
-        my $folder    = ("$action" eq "sort" )? $deliver  : '';
-		$folder = "INBOX" if "$folder" eq "" && "$action" eq "sort";
-        my $copy       = $rule->prop("copy")      || '';
-        my $oldpmRule  = '';
 
-        for ($basis, $basis2)
-        {
-         if ($_ eq '<')
-         { $_ =  'sizelt'; }
-         elsif ($_ eq '>')
-         { $_ =  'sizegt'; }
-        }
+    foreach my $rule (@rules) {
+        # Get the rule info as a hashref using the new routine
+        my $rule_info = get_rule_from_db($c, $rule);
+        # except restore the folder into deliver
+        if ($rule_info->{action} eq 'sort'){
+			$rule_info->{deliver} = $rule_info->{folder};
+		}
+        # Add any extra fields needed for the UI
+        $rule_info->{Modify} = "<a href=mailsortingd?trt=RULES&account=$PanelUser&Selected=$rule_info->{key}>".$c->l('MODIFY')."</a>";
+        $rule_info->{Remove} = "<a href=mailsortingd?trt=REMOVE&account=$PanelUser&Selected=$rule_info->{key}>".$c->l('REMOVE')."</a>";
+        # If you want to keep these for compatibility (though they seem odd)
+        $rule_info->{a} = $a if defined $a;
+        $rule_info->{b} = $b if defined $b;
+        $rule_info->{c} = $c;
 
-        my $b1    = $c->l($basis);
-        my $b2    = $c->l($basis2);
-        
-        my $copyto     = $rule->prop("deliver2")  || '';# useless
-        if (($copy eq 'yes') && ($action2 eq 'inbox'))
-        { $deliver2 = "";  $copyto = 'inbox'; } # copyto is useless
-
-        $deliver = GetDisplayName($deliver);
-        $deliver2 = GetDisplayName($deliver2);
-        
-        $key = $rule->key;
-	
-        push @data,
-            {
-              key        => $key,
-              basis      => $basis,
-              basis2     => $basis2,
-              criterion  => $rule->prop("criterion")  || '',
-              criterion2 => $rule->prop("criterion2") || '',
-              deliver    => $deliver,
-              deliver2   => $deliver2,
-              folder    => $folder,
-              action     => $action,
-              action2    => $action2,
-              copy       => $copy,
-              Modify     => "<a href=mailsortingd?trt=RULES&account=$PanelUser&Selected=$key>".$c->l('MODIFY')."</a>",
-              Remove     => "<a href=mailsortingd?trt=REMOVE&account=$PanelUser&Selected=$key>".$c->l('REMOVE')."</a>",
-              b1         => $b1,
-              b2         => $b2,
-              a          => $a,
-              b          => $b,
-              c          => $c,
-            }
+        push @data, $rule_info;
     }
-	return @data;
+    return @data;
 }
 
 sub get_getAllRules {
@@ -310,34 +274,35 @@ sub get_getAllRules {
 	sub perform_RULES {
 		my $c = shift;
 		my $ms_data = shift; #Data hash as parameter
-		my $ret = "";
-		my $db = $cdb; #maybe one of the others
-		my $dbkey = 'ChangeThis';
-		# To make it write to DB as comment, delete this (regex) string in each if statement "TRUE\) \#copy or perform with value: .* e.g."
-		
-		if (! TRUE) #copy or perform with value: basis e.g. $db->set_prop($dbkey,'basis',$c->param('basis'),type=>'service'))
-			{$ret .= 'Perform/save failed for basis';}
-		if (! TRUE) #copy or perform with value: criterion e.g. $db->set_prop($dbkey,'criterion',$c->param('criterion'),type=>'service'))
-			{$ret .= 'Perform/save failed for criterion';}
-		if (! TRUE) #copy or perform with value: basis2 e.g. $db->set_prop($dbkey,'basis2',$c->param('basis2'),type=>'service'))
-			{$ret .= 'Perform/save failed for basis2';}
-		if (! TRUE) #copy or perform with value: criterion2 e.g. $db->set_prop($dbkey,'criterion2',$c->param('criterion2'),type=>'service'))
-			{$ret .= 'Perform/save failed for criterion2';}
-		if (! TRUE) #copy or perform with value: action e.g. $db->set_prop($dbkey,'action',$c->param('action'),type=>'service'))
-			{$ret .= 'Perform/save failed for action';}
-		if (! TRUE) #copy or perform with value: deliver e.g. $db->set_prop($dbkey,'deliver',$c->param('deliver'),type=>'service'))
-			{$ret .= 'Perform/save failed for deliver';}
-		if (! TRUE) #copy or perform with value: folder e.g. $db->set_prop($dbkey,'folder',$c->param('folder'),type=>'service'))
-			{$ret .= 'Perform/save failed for folder';}
-		if (! TRUE) #copy or perform with value: copy e.g. $db->set_prop($dbkey,'copy',$c->param('copy'),type=>'service'))
-			{$ret .= 'Perform/save failed for copy';}
-		if (! TRUE) #copy or perform with value: action2 e.g. $db->set_prop($dbkey,'action2',$c->param('action2'),type=>'service'))
-			{$ret .= 'Perform/save failed for action2';}
-		if (! TRUE) #copy or perform with value: deliver2 e.g. $db->set_prop($dbkey,'deliver2',$c->param('deliver2'),type=>'service'))
-			{$ret .= 'Perform/save failed for deliver2';}
-		if (! TRUE) #copy or perform with value: key e.g. $db->set_prop($dbkey,'key',$c->param('key'),type=>'service'))
-			{$ret .= 'Perform/save failed for key';}
-		if ($ret eq "") {$ret = 'ok';}
+
+		my $ret = $c->save_rule();
+
+		#my $db = $cdb; #maybe one of the others
+		#my $dbkey = 'ChangeThis';
+		## To make it write to DB as comment, delete this (regex) string in each if statement "TRUE\) \#copy or perform with value: .* e.g."
+		#if (! TRUE) #copy or perform with value: basis e.g. $db->set_prop($dbkey,'basis',$c->param('basis'),type=>'service'))
+			#{$ret .= 'Perform/save failed for basis';}
+		#if (! TRUE) #copy or perform with value: criterion e.g. $db->set_prop($dbkey,'criterion',$c->param('criterion'),type=>'service'))
+			#{$ret .= 'Perform/save failed for criterion';}
+		#if (! TRUE) #copy or perform with value: basis2 e.g. $db->set_prop($dbkey,'basis2',$c->param('basis2'),type=>'service'))
+			#{$ret .= 'Perform/save failed for basis2';}
+		#if (! TRUE) #copy or perform with value: criterion2 e.g. $db->set_prop($dbkey,'criterion2',$c->param('criterion2'),type=>'service'))
+			#{$ret .= 'Perform/save failed for criterion2';}
+		#if (! TRUE) #copy or perform with value: action e.g. $db->set_prop($dbkey,'action',$c->param('action'),type=>'service'))
+			#{$ret .= 'Perform/save failed for action';}
+		#if (! TRUE) #copy or perform with value: deliver e.g. $db->set_prop($dbkey,'deliver',$c->param('deliver'),type=>'service'))
+			#{$ret .= 'Perform/save failed for deliver';}
+		#if (! TRUE) #copy or perform with value: folder e.g. $db->set_prop($dbkey,'folder',$c->param('folder'),type=>'service'))
+			#{$ret .= 'Perform/save failed for folder';}
+		#if (! TRUE) #copy or perform with value: copy e.g. $db->set_prop($dbkey,'copy',$c->param('copy'),type=>'service'))
+			#{$ret .= 'Perform/save failed for copy';}
+		#if (! TRUE) #copy or perform with value: action2 e.g. $db->set_prop($dbkey,'action2',$c->param('action2'),type=>'service'))
+			#{$ret .= 'Perform/save failed for action2';}
+		#if (! TRUE) #copy or perform with value: deliver2 e.g. $db->set_prop($dbkey,'deliver2',$c->param('deliver2'),type=>'service'))
+			#{$ret .= 'Perform/save failed for deliver2';}
+		#if (! TRUE) #copy or perform with value: key e.g. $db->set_prop($dbkey,'key',$c->param('key'),type=>'service'))
+			#{$ret .= 'Perform/save failed for key';}
+		#if ($ret eq "") {$ret = 'ok';}
 		return $ret;
 	}
 
@@ -415,6 +380,224 @@ sub listfolders
        	}
 	return \%out_dir;
 }
+
+sub get_rule_from_db{
+	$c = shift;
+	$rule = shift;
+	my $key        = $rule->key;
+	my $basis      = $rule->prop("basis")     || '';
+	my $basis2     = $rule->prop("basis2")    || '';
+	my $deliver    = $rule->prop("deliver")   || '';
+	my $deliver2   = $rule->prop("deliver2")  || '';
+	my $action     = $rule->prop("action")    || '';
+	my $action2    = $rule->prop("action2")   || '';
+	my $folder    = ("$action" eq "sort" )? $deliver  : '';
+	$folder = "INBOX" if "$folder" eq "" && "$action" eq "sort";
+	my $copy       = $rule->prop("copy")      || '';
+	my $oldpmRule  = '';
+	my $criterion =  $rule->prop("criterion")   || '';
+	my $criterion2 =  $rule->prop("criterion2")   || '';
+	my $deliver     = '' if "$action" eq "sort";
+
+	for ($basis, $basis2)
+	{
+	 if ($_ eq '<')
+	 { $_ =  'sizelt'; }
+	 elsif ($_ eq '>')
+	 { $_ =  'sizegt'; }
+	}
+	
+	my $b1    = $c->l($basis);
+	my $b2    = $c->l($basis2);
+	
+	my $copyto     = $rule->prop("deliver2")  || '';# useless
+	if (($copy eq 'yes') && ($action2 eq 'inbox'))
+	{ $deliver2 = "";  $copyto = 'inbox'; } # copyto is useless
+
+	$deliver = GetDisplayName($deliver);
+	$deliver2 = GetDisplayName($deliver2);
+    my $result = {
+        key        => $key,
+        basis      => $basis,
+        basis2     => $basis2,
+        deliver    => $deliver,
+        deliver2   => $deliver2,
+        action     => $action,
+        action2    => $action2,
+        folder     => $folder,
+        copy       => $copy,
+        b1         => $b1,
+        b2         => $b2,
+        copyto     => $copyto,
+        criterion  => $criterion,
+        criterion2  => $criterion2,
+        oldkey     => $key
+    };
+}
+
+sub save_rule
+{
+    my $c = shift;
+    my $pdb  = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+    my $PanelUser = $c->get_panel_user();
+
+    my $rule = $c->param ('key')  || '';
+    #my $q = 
+    if (($rule eq '') || ($rule eq 'new'))
+    {
+      my $random = int(rand(999999));
+      $rule = $PanelUser.$random;
+      $pdb->new_record($rule, { type => "$PanelUser" });
+    }
+    my %filtered;
+    $filtered{criterion}      .= $c->param ('criterion')     || '';
+    $filtered{criterion2}    .= $c->param ('criterion2')    || '';
+    $filtered{basis}      .= $c->param ('basis')     || '';
+    $filtered{basis2}    .= $c->param ('basis2')    || '';
+    $filtered{action}    .= $c->param ('action')     || '';
+    $filtered{action2}   .= $c->param ('action2')    || '';
+    $filtered{deliver}   .= $c->param ('deliver')    || '';
+    $filtered{deliver2}   .= $c->param ('deliver2')   || '';
+    $filtered{folder}    .= $c->param ('folder')    || '';
+    $filtered{copy}       .= $c->param ('copy')       || '';
+    $filtered{oldkey}     .= $c->param ('oldkey')     || '';
+
+    if ($filtered{basis} eq 'sizelt')  { $filtered{basis}  = '<'; }
+    if ($filtered{basis} eq 'sizegt')  { $filtered{basis}  = '>'; }
+    if ($filtered{basis2} eq 'sizelt') { $filtered{basis2} = '<'; }
+    if ($filtered{basis2} eq 'sizegt') { $filtered{basis2} = '>'; }
+
+    # we use the folder drop box selection if asked to sort
+    $filtered{folder} = "" if $filtered{folder} eq "INBOX";
+    $filtered{deliver} = $filtered{folder} if $filtered{action} eq "sort";
+
+    if ($filtered{copy} eq 'no')       { $filtered{deliver2} = '';  $filtered{action2} = ''; }
+    if ($filtered{copy} eq 'yes' &&  $filtered{action2} eq 'inbox')       { $filtered{deliver2} = ''; }
+
+    # keys are different but rule at least has part of users name so is likely changed
+    if (($filtered{oldkey} ne $rule) && ($filtered{oldkey} =~ /$PanelUser/))
+    {
+        $pdb->new_record($rule, { type => "$PanelUser" });
+
+        my $rec = $pdb->get($filtered{oldkey});
+        $rec->delete;
+    }
+
+    foreach ("criterion","criterion2","action","action2","copy","basis","basis2","deliver","deliver2" )
+    { $pdb->set_prop($rule, "$_", $filtered{$_}); }
+
+    unless ( system ("/sbin/e-smith/signal-event mailsorting-conf $PanelUser") == 0 )
+    { return 'ERROR_UPDATING'; }
+
+    return "ok";
+}
+
+#
+# This are for the future enhanced version.
+#
+sub describe_procmail_rule {
+    my ($rule) = @_;
+    my @lines = grep { /\S/ } map { s/^\s+|\s+$//gr } split /\n/, $rule;
+    my ($header, @conditions, $action);
+    $header = shift @lines if $lines[0] =~ /^:0/;
+    while (@lines && $lines[0] =~ /^\*/) {
+        push @conditions, shift @lines;
+    }
+    $action = join(' ', @lines);
+    my $desc = "";
+    if ($header) {
+        my $flags = $header; $flags =~ s/^:0//; $flags =~ s/:$//; $flags =~ s/\s+//g;
+        $desc .= "Recipe flags: " . ($flags ? $flags : "none") . ". ";
+    }
+    if (@conditions) {
+        $desc .= "Matches if ";
+        my @cond_descs;
+        foreach my $cond (@conditions) {
+            $cond =~ s/^\*\s*//;
+            if ($cond =~ /^\^(.*?):\s*(.*)/) {
+                push @cond_descs, "the header '$1' contains '$2'";
+            } elsif ($cond =~ /^\//) {
+                push @cond_descs, "the body matches regex '$cond'";
+            } else {
+                push @cond_descs, "the message matches '$cond'";
+            }
+        }
+        $desc .= join(" AND ", @cond_descs) . ". ";
+    } else {
+        $desc .= "Matches all messages. ";
+    }
+    if ($action) {
+        if ($action =~ m{^/}) {
+            $desc .= "Delivers to file or mailbox '$action'.";
+        } elsif ($action =~ /^[A-Za-z0-9_\-]+$/) {
+            $desc .= "Delivers to folder '$action'.";
+        } elsif ($action =~ /^\!/) {
+            $desc .= "Forwards to address '" . (split ' ', $action, 2)[1] . "'.";
+        } elsif ($action =~ /^\|/) {
+            $desc .= "Pipes message to command '" . (substr $action, 1) . "'.";
+        } else {
+            $desc .= "Performs action: '$action'.";
+        }
+    } else {
+        $desc .= "No action specified.";
+    }
+    return $desc;
+}
+
+sub construct_procmail_rule {
+    my ($entry) = @_;
+
+    # Start the recipe header
+    my $flags = '';
+    $flags .= 'c' if ($entry->{copy} && $entry->{copy} eq 'yes');
+    my $header = ":0$flags:";
+
+    # Build conditions
+    my @conditions;
+    if ($entry->{basis} && $entry->{criterion}) {
+        my $cond = ($entry->{basis} eq 'Subject')
+            ? "^Subject:.*$entry->{criterion}"
+            : ($entry->{basis} eq 'headers')
+                ? $entry->{criterion}
+                : "^$entry->{basis}:.*$entry->{criterion}";
+        push @conditions, "* $cond";
+    }
+    if ($entry->{basis2} && $entry->{criterion2}) {
+        my $cond2 = ($entry->{basis2} eq 'Subject')
+            ? "^Subject:.*$entry->{criterion2}"
+            : ($entry->{basis2} eq 'headers')
+                ? $entry->{criterion2}
+                : "^$entry->{basis2}:.*$entry->{criterion2}";
+        push @conditions, "* $cond2";
+    }
+
+    # Build action
+    my $action = '';
+    if ($entry->{action} && $entry->{action} eq 'delete') {
+        $action = "/dev/null";
+    } elsif ($entry->{deliver}) {
+        $action = $entry->{deliver};
+    } else {
+        $action = "INBOX"; # Default action
+    }
+
+    # Assemble the recipe
+    my $rule = $header . "\n";
+    $rule .= join("\n", @conditions) . "\n" if @conditions;
+    $rule .= "$action\n";
+    return $rule;
+}
+
+sub get_esmith_db_property {
+	# as a hashref
+    my ($db, $key, $prop) = @_;
+    my $record = $db->get($key) or return undef;
+    my $value = $record->prop($prop);
+    return $value;
+}
+
+
+
 
 
 1;

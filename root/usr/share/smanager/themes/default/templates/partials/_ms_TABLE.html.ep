@@ -38,10 +38,12 @@
 			%= text_field 'username', size => '50', class => 'textinput username' , pattern=>'.*' , placeholder=>'username', title =>'Pattern regex mismatch', id => 'username_text'
 		<br></span></p>
 	
-		<a href='mailsortingdd?trt=RULES' class='link link1'>
-			%= l('ms_Add_new_rule')
-		</a>
-		%#= link_to l('ms_Add_new_rule'), 'mailsortingdd?trt=RULES' , class=>'link link1'
+		<div class = 'inline-buttons'>
+			<a href='mailsortingd?trt=RULES' class='link link1'>
+				%= l('ms_Add_new_rule')
+			</a>
+		</div>
+		%#= link_to l('ms_Add_new_rule'), 'mailsortinge?trt=RULES' , class=>'link link1'
 	
 	
 		<h2 class='subh'><%=l('ms_Current_rules')%></h2>

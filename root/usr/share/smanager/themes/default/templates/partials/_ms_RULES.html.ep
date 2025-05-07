@@ -16,6 +16,7 @@
 	%= form_for "mailsortingu" => (method => 'POST') => begin
 		% param 'trt' => $ms_data->{trt} unless param 'trt';
 		%= hidden_field 'trt' => $ms_data->{trt}
+		%= hidden_field 'oldkey' => $ms_data->{oldkey}
 		%# Inputs etc in here.
 
 		<h1 class='head'><%=l('ms_Mail_sorting_rules')%></h1>
@@ -31,52 +32,52 @@
 		</p>
 	
 		<p><span class=label>
-			%=l('ms_basis')
+			%=l('ms_Match_against')
 		</span><span class=data>
-			% my @basis_options = [['Subject' => 'Subject'], ['To' => 'TO_'], ['From' => 'From'], ['Email Headers' => 'headers'], ['Size greater than' => 'sizegt'], ['Size less than' => 'sizelt']];
+			% my @basis_options = [['Subject' => 'Subject'], ['To' => 'To'], ['From' => 'From'], ['Email Headers' => 'headers'], ['Size greater than' => 'sizegt'], ['Size less than' => 'sizelt']];
 			% param 'basis' => $ms_data->{basis} unless param 'basis';
 			%= select_field 'basis' => @basis_options, class => 'input', id => 'basis_select'
 		<br></span>	</p>
 	
 		<p><span class=label>
-			%=l('ms_criterion')
+			%=l('ms_the_rule')
 		</span><span class=data>
 			% param 'criterion' => $ms_data->{criterion} unless param 'criterion';
 			%= text_field 'criterion', size => '50', class => 'textinput criterion' , pattern=>'.*' , placeholder=>'criterion', title =>'Pattern regex mismatch', id => 'criterion_text'
 		<br></span></p>
 	
 		<p><span class=label>
-			%=l('ms_basis2')
+			%=l('ms_2nd_Match')
 		</span><span class=data>
-			% my @basis2_options = [['' => ''], ['Subject' => 'Subject'], ['To' => 'TO_'], ['From' => 'From'], ['Email Headers' => 'headers']];
+			% my @basis2_options = [['' => ''], ['Subject' => 'Subject'], ['To' => 'To'], ['From' => 'From'], ['Email Headers' => 'headers']];
 			% param 'basis2' => $ms_data->{basis2} unless param 'basis2';
 			%= select_field 'basis2' => @basis2_options, class => 'input', id => 'basis2_select'
 		<br></span>	</p>
 	
 		<p><span class=label>
-			%=l('ms_criterion2')
+			%=l('ms_2nd_rule')
 		</span><span class=data>
 			% param 'criterion2' => $ms_data->{criterion2} unless param 'criterion2';
 			%= text_field 'criterion2', size => '50', class => 'textinput criterion2' , pattern=>'.*' , placeholder=>'criterion2', title =>'Pattern regex mismatch', id => 'criterion2_text'
 		<br></span></p>
 	
 		<p><span class=label>
-			%=l('ms_action')
+			%=l('ms_Action')
 		</span><span class=data>
-			% my @action_options = [['Delete email' => 'delete'], ['Forward email' => 'forward'], ['Sort to mail folder' => 'sort']];
-			% param 'action' => $ms_data->{action} unless param 'action';
+			% my @action_options = selected_field([['Delete email' => 'delete'], ['Forward email' => 'forward'], ['Sort to mail folder' => 'sort']],$ms_data->{action});
+			%# param 'action' => $ms_data->{action} unless param 'action';
 			%= select_field 'action' => @action_options, class => 'input', id => 'action_select'
 		<br></span>	</p>
 	
 		<p><span class=label>
-			%=l('ms_deliver')
+			%=l('ms_deliver_email')
 		</span><span class=data>
 			% param 'deliver' => $ms_data->{deliver} unless param 'deliver';
 			%= text_field 'deliver', size => '50', class => 'textinput deliver' , pattern=>'.*' , placeholder=>'deliver', title =>'Pattern regex mismatch', id => 'deliver_text'
 		<br></span></p>
 	
 		<p><span class=label>
-			%=l('ms_folder')
+			%=l('ms_folder_if_sorting')
 		</span><span class=data>
 			% my @folder_options = $c->get_Folders();
 			% param 'folder' => $ms_data->{folder} unless param 'folder';
@@ -92,15 +93,15 @@
 		<br></span>	</p>
 	
 		<p><span class=label>
-			%=l('ms_action2')
+			%=l('ms_2nd_action')
 		</span><span class=data>
-			% my @action2_options = [['' => ''], ['Delete email' => 'delete'], ['Forward email' => 'forward'], ['Send to my inbox' => 'inbox']];
-			% param 'action2' => $ms_data->{action2} unless param 'action2';
+			% my @action2_options = selected_field([['' => ''], ['Delete email' => 'delete'], ['Forward email' => 'forward'], ['Send to my inbox' => 'inbox']],$ms_data->{action2});
+			%# param 'action2' => $ms_data->{action2} unless param 'action2';
 			%= select_field 'action2' => @action2_options, class => 'input', id => 'action2_select'
 		<br></span>	</p>
 	
 		<p><span class=label>
-			%=l('ms_deliver2')
+			%=l('ms_deliver2_email')
 		</span><span class=data>
 			% param 'deliver2' => $ms_data->{deliver2} unless param 'deliver2';
 			%= text_field 'deliver2', size => '50', class => 'textinput deliver2' , pattern=>'.*' , placeholder=>'deliver2', title =>'Pattern regex mismatch', id => 'deliver2_text'
