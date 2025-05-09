@@ -16,6 +16,9 @@
 	%= form_for "mailsortingu" => (method => 'POST') => begin
 		% param 'trt' => $ms_data->{trt} unless param 'trt';
 		%= hidden_field 'trt' => $ms_data->{trt}
+		%# die("here");
+		%= hidden_field 'Selected' => $c->param('Selected')
+
 		%# Inputs etc in here.
 
 		<h1 class='head'><%=l('ms_Mail_sorting_rules')%></h1>
@@ -26,13 +29,13 @@
 			%=l('ms_Rule_contents')
 		</span><span class=data>
 			% param 'RemoveRule' => $ms_data->{RemoveRule} unless param 'RemoveRule';
-			%= text_area 'RemoveRule', cols=>40, rows=>10, Readonly=>'true','
+			%= text_area 'RemoveRule', cols=>60, rows=>20, Readonly=>'true'
 		</span><br>
 	
 		<span class='data'>
-			%= submit_button l('ms_Remove'), class => 'action subm95'
+			%= submit_button l('ms_Remove'), class => 'action subm05'
 		</span>
-	
+			
 		%# Probably finally by a submit.
 	%end    
 </div>

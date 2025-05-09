@@ -13,6 +13,10 @@
 		</pre>
 	% }
 	% my $btn = l('ms_APPLY');
+	
+	%# flag selection undefined
+	% $c->param(Selected => undef);
+	
 	%= form_for "mailsortingu" => (method => 'POST') => begin
 		% param 'trt' => $ms_data->{trt} unless param 'trt';
 		%= hidden_field 'trt' => $ms_data->{trt}

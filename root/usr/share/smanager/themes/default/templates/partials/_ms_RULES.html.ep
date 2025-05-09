@@ -28,7 +28,7 @@
 		</p>
 	
 		<p class='paragraph para2'>
-			%=l('ms_You_can_change_the_order')
+			%= $ms_data->{topmessage};                                              #l('ms_You_can_change_the_order')
 		</p>
 	
 		<p><span class=label>

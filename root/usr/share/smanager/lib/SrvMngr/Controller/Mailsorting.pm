@@ -168,11 +168,10 @@ sub do_update {
 		}
 	
 	if ($ret ne "ok"){
+		$c->stash(error => $c->l($ret));
 		$c->do_display($thispanel);
 	} else {
 		#Do whatever is needed, including writing values to the DB
-		
-		
 			if ($trt eq 'TABLE'){
 				#do whatever is required ...
 				$ret = $c->perform_TABLE(\%ms_data);

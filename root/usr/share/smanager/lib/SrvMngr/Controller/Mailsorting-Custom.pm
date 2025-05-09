@@ -54,31 +54,36 @@ my $pdb;
 	sub validate_RULES {
 		my $c = shift;
 		my $ms_data = shift; #Data hash as parameter
-		# Validation for each field 
 		my $ret = "";
+
+		## Validation for each field 
 		
-		if (! TRUE) #validate $c->param('basis')
-			{$ret .= 'Validation for basis failed';}	
-		if (! TRUE) #validate $c->param('criterion')
-			{$ret .= 'Validation for criterion failed';}	
-		if (! TRUE) #validate $c->param('basis2')
-			{$ret .= 'Validation for basis2 failed';}	
-		if (! TRUE) #validate $c->param('criterion2')
-			{$ret .= 'Validation for criterion2 failed';}	
-		if (! TRUE) #validate $c->param('action')
-			{$ret .= 'Validation for action failed';}	
-		if (! TRUE) #validate $c->param('deliver')
-			{$ret .= 'Validation for deliver failed';}	
-		if (! TRUE) #validate $c->param('folder')
-			{$ret .= 'Validation for folder failed';}	
-		if (! TRUE) #validate $c->param('copy')
-			{$ret .= 'Validation for copy failed';}	
-		if (! TRUE) #validate $c->param('action2')
-			{$ret .= 'Validation for action2 failed';}	
-		if (! TRUE) #validate $c->param('deliver2')
-			{$ret .= 'Validation for deliver2 failed';}	
-		if (! TRUE) #validate $c->param('key')
-			{$ret .= 'Validation for key failed';}	
+		#if (! TRUE) #validate $c->param('basis')
+			#{$ret .= 'Validation for basis failed';}	
+		#if (! TRUE) #validate $c->param('criterion')
+			#{$ret .= 'Validation for criterion failed';}	
+		#if (! TRUE) #validate $c->param('basis2')
+			#{$ret .= 'Validation for basis2 failed';}	
+		#if (! TRUE) #validate $c->param('criterion2')
+			#{$ret .= 'Validation for criterion2 failed';}	
+		#if (! TRUE) #validate $c->param('action')
+			#{$ret .= 'Validation for action failed';}	
+		#if (! TRUE) #validate $c->param('deliver')
+			#{$ret .= 'Validation for deliver failed';}	
+		#if (! TRUE) #validate $c->param('folder')
+			#{$ret .= 'Validation for folder failed';}	
+		#if (! TRUE) #validate $c->param('copy')
+			#{$ret .= 'Validation for copy failed';}	
+		#if (! TRUE) #validate $c->param('action2')
+			#{$ret .= 'Validation for action2 failed';}	
+		#if (! TRUE) #validate $c->param('deliver2')
+			#{$ret .= 'Validation for deliver2 failed';}	
+		#if (! TRUE) #validate $c->param('key')
+			#{$ret .= 'Validation for key failed';}	
+		#Check parameters 
+		$ret = $c->nonblankWithSort();
+		$ret = $c->nonblankWithForward() unless $ret ne 'ok';
+		$ret = $c->nonblankWithForward2() unless $ret ne 'ok';
 		if ($ret eq "") {$ret = 'ok';}
 		return $ret;
 	}
@@ -117,13 +122,26 @@ sub get_data_for_panel_RULES {
     my $pdb = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
     my $PanelUser = $c->get_panel_user();
     my $key = $c->param('Selected');
-
+    
     # Get the rule object from the DB
     my $rule = $pdb->get($key);
-    return () unless $rule;
+	unless ($rule) {
+		# Get the list of property names (fields) from the database metadata
+		my @fields = $pdb->props;  # If you want all possible properties for the DB
+		my $len = scalar @fields;
+		# Or, for a specific record: my @fields = $rule->props if $rule;
+
+		my %empty_rule = map { $_ => "" } @fields;
+		return (
+			topmessage => $c->l('ms_new_record'),
+			%empty_rule,
+		);
+	}
 
     # Use the new routine to get rule data
     my $rule_info = get_rule_from_db($c, $rule);
+    # and add heading message
+    $rule_info->{topmessage} = $c->l('ms_You_can_change_the_order');
 
     # Add/override any fields specific to the panel as needed
     my %ret = (
@@ -136,11 +154,12 @@ sub get_data_for_panel_RULES {
 	sub get_data_for_panel_REMOVE {
 		# Return a hash with the fields required which will be loaded into the shared data 
 		my $c = shift;
+		my $pdb = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+		my $PanelUser = $c->get_panel_user();
+		my $key = $c->param('Selected');
 		my %ret = (
-			'Data1'=>'Data for REMOVE', #Example
 			# fields from Inputs in REMOVE $fields['REMOVE']
-			'RemoveRule'=>'RemoveRule contents',
-			
+			'RemoveRule'=>"Db entries:\n------------\n".$c->esmith_db_record_to_multiline($pdb,$key)."\n\nProcmail Rule:\n--------------".$c->get_procmail_rule($pdb,$key),
 		);
 		return %ret;
 	}
@@ -238,7 +257,7 @@ sub get_getAllRules {
 
 	sub get_selected_RULES {
 		my $c = shift;
-		my $selected = shift; #Parameter is name of selected row.
+		my $selected = shift; #'Parameter is name of selected row.
 		my $is_new_record = shift; #Indicates new record required (defaults)
 		my %ret = {};
 		return %ret;
@@ -308,17 +327,22 @@ sub get_getAllRules {
 
 	sub perform_REMOVE {
 		my $c = shift;
-		my $ms_data = shift; #Data hash as parameter
-		my $ret = "";
-		my $db = $cdb; #maybe one of the others
-		my $dbkey = 'ChangeThis';
-		# To make it write to DB as comment, delete this (regex) string in each if statement "TRUE\) \#copy or perform with value: .* e.g."
-		
-		if (! TRUE) #copy or perform with value: RemoveRule e.g. $db->set_prop($dbkey,'RemoveRule',$c->param('RemoveRule'),type=>'service'))
-			{$ret .= 'Perform/save failed for RemoveRule';}
-		if ($ret eq "") {$ret = 'ok';}
-		return $ret;
+		my $ms_data = shift;
+		return $c->remove_rule()
 	}
+
+	sub remove_rule {
+		my $c = shift;
+		my $rule = $c->param('Selected');
+		my $pdb  = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+		my $PanelUser = $c->get_panel_user();
+		my $rec = $pdb->get($rule); # || return "Rule:$rule not found";
+		$rec->delete;
+		unless ( system ("/sbin/e-smith/signal-event mailsorting-conf $PanelUser") == 0 )
+		{ return $self->error('ERROR_UPDATING'); }
+		return 'ok';
+	}
+
 
 
 sub create_link{
@@ -442,13 +466,16 @@ sub save_rule
     my $PanelUser = $c->get_panel_user();
 
     my $rule = $c->param ('key')  || '';
-    #my $q = 
     if (($rule eq '') || ($rule eq 'new'))
     {
       my $random = int(rand(999999));
       $rule = $PanelUser.$random;
       $pdb->new_record($rule, { type => "$PanelUser" });
-    }
+    } elsif (! defined $pdb->get($rule)){
+		#check if the key specified exists in the DB, if not then create it
+		$pdb->new_record($rule, { type => "$PanelUser" });
+	}
+
     my %filtered;
     $filtered{criterion}      .= $c->param ('criterion')     || '';
     $filtered{criterion2}    .= $c->param ('criterion2')    || '';
@@ -492,111 +519,167 @@ sub save_rule
     return "ok";
 }
 
-#
-# This are for the future enhanced version.
-#
-sub describe_procmail_rule {
-    my ($rule) = @_;
-    my @lines = grep { /\S/ } map { s/^\s+|\s+$//gr } split /\n/, $rule;
-    my ($header, @conditions, $action);
-    $header = shift @lines if $lines[0] =~ /^:0/;
-    while (@lines && $lines[0] =~ /^\*/) {
-        push @conditions, shift @lines;
+sub esmith_db_record_to_multiline {
+	my $c = shift;
+    my ($db, $key) = @_;
+    my $record = $db->get($key) or return "No record found for key: $key";
+    # Get all property (field) names from the DB's metadata
+    my @fields = $record->props;
+    my @lines;
+    foreach my $field (@fields) {
+        my $value = $record->prop($field);
+        next unless defined $value && $value ne '';
+        push @lines, "$field: $value";
     }
-    $action = join(' ', @lines);
-    my $desc = "";
-    if ($header) {
-        my $flags = $header; $flags =~ s/^:0//; $flags =~ s/:$//; $flags =~ s/\s+//g;
-        $desc .= "Recipe flags: " . ($flags ? $flags : "none") . ". ";
-    }
-    if (@conditions) {
-        $desc .= "Matches if ";
-        my @cond_descs;
-        foreach my $cond (@conditions) {
-            $cond =~ s/^\*\s*//;
-            if ($cond =~ /^\^(.*?):\s*(.*)/) {
-                push @cond_descs, "the header '$1' contains '$2'";
-            } elsif ($cond =~ /^\//) {
-                push @cond_descs, "the body matches regex '$cond'";
-            } else {
-                push @cond_descs, "the message matches '$cond'";
-            }
-        }
-        $desc .= join(" AND ", @cond_descs) . ". ";
-    } else {
-        $desc .= "Matches all messages. ";
-    }
-    if ($action) {
-        if ($action =~ m{^/}) {
-            $desc .= "Delivers to file or mailbox '$action'.";
-        } elsif ($action =~ /^[A-Za-z0-9_\-]+$/) {
-            $desc .= "Delivers to folder '$action'.";
-        } elsif ($action =~ /^\!/) {
-            $desc .= "Forwards to address '" . (split ' ', $action, 2)[1] . "'.";
-        } elsif ($action =~ /^\|/) {
-            $desc .= "Pipes message to command '" . (substr $action, 1) . "'.";
-        } else {
-            $desc .= "Performs action: '$action'.";
-        }
-    } else {
-        $desc .= "No action specified.";
-    }
-    return $desc;
+    return join("\n", @lines);
 }
 
-sub construct_procmail_rule {
-    my ($entry) = @_;
+sub get_esmith_db_record_hashref {
+	my $c = shift;
+    my ($db, $key) = @_;
+    my $record = $db->get($key) or return undef;
+    my %props = $record->props;   # returns a hash (not a hashref)
+    return \%props;               # return a hashref
+}
 
-    # Start the recipe header
-    my $flags = '';
-    $flags .= 'c' if ($entry->{copy} && $entry->{copy} eq 'yes');
-    my $header = ":0$flags:";
+sub get_procmail_rule {
+	my $c = shift;
+	# Logic taken from template expansion 
+    my ($pdb, $key) = @_;
 
-    # Build conditions
-    my @conditions;
-    if ($entry->{basis} && $entry->{criterion}) {
-        my $cond = ($entry->{basis} eq 'Subject')
-            ? "^Subject:.*$entry->{criterion}"
-            : ($entry->{basis} eq 'headers')
-                ? $entry->{criterion}
-                : "^$entry->{basis}:.*$entry->{criterion}";
-        push @conditions, "* $cond";
-    }
-    if ($entry->{basis2} && $entry->{criterion2}) {
-        my $cond2 = ($entry->{basis2} eq 'Subject')
-            ? "^Subject:.*$entry->{criterion2}"
-            : ($entry->{basis2} eq 'headers')
-                ? $entry->{criterion2}
-                : "^$entry->{basis2}:.*$entry->{criterion2}";
-        push @conditions, "* $cond2";
-    }
+    my $basis      = $pdb->get_prop($key, "basis")      || '';
+    my $criterion  = $pdb->get_prop( $key, "criterion")  || '';
+    my $basis2     = $pdb->get_prop( $key, "basis2")     || '';
+    my $secondtest_orig = $pdb->get_prop( $key, "basis2") || '';
+    my $criterion2 = $pdb->get_prop( $key, "criterion2") || '';
+    my $deliver    = $pdb->get_prop( $key, "deliver")    || '';
+    my $deliver2   = $pdb->get_prop( $key, "deliver2")   || '';
+    my $copy       = $pdb->get_prop( $key, "copy")       || '';
+    my $action     = $pdb->get_prop( $key, "action")     || '';
+    my $action2    = $pdb->get_prop( $key, "action2")    || '';
 
-    # Build action
-    my $action = '';
-    if ($entry->{action} && $entry->{action} eq 'delete') {
-        $action = "/dev/null";
-    } elsif ($entry->{deliver}) {
-        $action = $entry->{deliver};
-    } else {
-        $action = "INBOX"; # Default action
+    # Process basis fields
+    foreach my $b (\$basis, \$basis2) {
+        $$b = $c->process_basis($$b);
     }
 
-    # Assemble the recipe
-    my $rule = $header . "\n";
-    $rule .= join("\n", @conditions) . "\n" if @conditions;
-    $rule .= "$action\n";
+    # Handle spaces in deliver addresses
+    unless (($zarafa1 eq 'enabled') || ($zarafa2 eq 'enabled')) {
+        $_ =~ s/ /\\ /g for ($deliver, $deliver2);
+    }
+
+    # Build delivery paths
+    $deliver = $c->build_delivery_path($action, $deliver, $USERNAME);
+    $deliver2 = $c->build_delivery_path($action2, $deliver2, $USERNAME) if $action2;
+
+    # Construct second test line
+    my $secondtest = $secondtest_orig ? "* $basis2$criterion2\n" : '';
+
+    # Build rule string
+    my $rule = "\n";
+    if ($copy eq 'no') {
+        $rule .= ":0\n* $basis$criterion\n$secondtest$deliver\n";
+    }
+    elsif ($copy eq 'yes' && $action2 eq 'inbox') {
+        $rule .= ":0 c\n* $basis$criterion\n$secondtest$deliver\n";
+    }
+    else {
+        $rule .= ":0\n* $basis$criterion\n$secondtest\{\n"
+               . "   :0 c\n   $deliver\n\n   :0\n   $deliver2\n\}\n";
+    }
+
     return $rule;
 }
 
-sub get_esmith_db_property {
-	# as a hashref
-    my ($db, $key, $prop) = @_;
-    my $record = $db->get($key) or return undef;
-    my $value = $record->prop($prop);
-    return $value;
+sub process_basis {
+    my ($c,$basis) = @_;
+    return '' if $basis eq 'headers';
+    
+    if ($basis !~ /^[<>]$/) {
+        return $basis eq 'TO_' ? "^$basis" : "^${basis}.*";
+    }
+    return "$basis ";
 }
 
+sub build_delivery_path {
+    my ($c,$action, $deliver, $user) = @_;
+    
+    return '' unless $deliver;
+    
+    if ($action =~ /sort|create/) {
+        return ($zarafa1 eq 'enabled' || $zarafa2 eq 'enabled')
+            ? ($deliver eq 'junkmail' 
+                ? "| zarafa-dagent -j $user"
+                : "| zarafa-dagent $user -C -F 'Inbox\\$deliver'")
+            : "\$MAILDIR/.$deliver/";
+    }
+    elsif ($action eq 'forward') {
+        return "! $deliver";
+    }
+    elsif ($action eq 'delete') {
+        return '/dev/null';
+    }
+    return $deliver;
+}
 
+sub nonblankWithForward
+{
+    my $c = shift;
+
+    my $action   = $c->param ('action')  || '';
+    my $deliver  = $c->param ('deliver') || '';
+
+    if ( $action eq 'sort')
+    {
+	return "ms_ERROR_SHOULD_BE_EMPTY" unless not $deliver;
+	return 'ok';
+    }
+    elsif ( $action ne 'delete')
+    {
+      if (not $deliver)
+      { return "ms_ERROR_FORWARD_NO_EMAIL"; }
+      elsif (  $deliver =~ /^\s+$/ )
+      { return "ms_ERROR_FORWARD_NO_EMAIL"; }
+      else
+      { return 'ok'; }
+    }
+    else { return 'ok'; }
+}
+
+sub nonblankWithForward2
+{
+    my $c = shift;
+
+    my $copy     = $c->param ('copy')     || '';
+    my $action   = $c->param ('action2')  || '';
+    my $deliver  = $c->param ('deliver2') || '';
+
+    if (( $action eq 'forward') && ( $copy eq 'yes'))
+    {
+      if (not $deliver)
+      { return "ms_ERROR_FORWARD_NO_EMAIL"; }
+      elsif (  $deliver =~ /^\s+$/ )
+      { return "ms_ERROR_FORWARD_NO_EMAIL"; }
+      else
+      { return 'ok'; }
+    }
+    else { return 'ok'; }
+}
+
+sub nonblankWithSort
+{
+    my $c = shift;
+
+    my $action   = $c->param ('action')  || '';
+    my $folder  = $c->param ('folder') || '';
+
+    if ( $action eq 'sort')
+    {
+        return "ms_ERROR_SORT_NO_FOLDER" if not $folder;
+        return 'ok';
+    }
+    else { return 'ok'; }
+}
 
 
 
