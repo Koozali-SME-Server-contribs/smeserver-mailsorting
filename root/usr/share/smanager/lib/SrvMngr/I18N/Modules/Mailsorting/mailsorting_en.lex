@@ -50,4 +50,5 @@
 'ms_2nd_action' => '2nd action',
 'ms_deliver2_email' => '2nd action Delivery email (if forwarding)',
 'ms_key' => 'Order of rule execution',
-'ms_new_record' => 'Select the part of the email to be tested. You can match against part of an email address, header, subject, or the email size. Size is in bytes. Delete, sort or Forward any matches. The second match is optional, but if used both rules must match'
+'ms_new_record' => 'Select the part of the email to be tested. You can match against part of an email address, header, subject, or the email size. Size is in bytes. Delete, sort or Forward any matches. The second match is optional, but if used both rules must match',
+'ms_ERROR_FORWARD_NO_EMAIL' => 'No email address provided for forwarding',

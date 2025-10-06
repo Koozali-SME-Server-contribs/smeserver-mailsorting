@@ -7,11 +7,11 @@
 #
 use esmith::util;
 use esmith::util::network;
-use esmith::ConfigDB;
-use esmith::HostsDB;
-use esmith::AccountsDB;
+use esmith::ConfigDB::UTF8;
+use esmith::HostsDB::UTF8;
+use esmith::AccountsDB::UTF8;
 use esmith::NetworksDB;
-use esmith::DomainsDB;
+use esmith::DomainsDB::UTF8;
 
 use Encode::IMAPUTF7;
 use Encode qw(decode);
@@ -19,9 +19,9 @@ use Encode qw(decode);
 use constant FALSE => 0;
 use constant TRUE  => 1;
 
-our $cdb  = esmith::ConfigDB->open();
-our $adb = esmith::AccountsDB->open();
-our $pdb = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+#our $cdb  = esmith::ConfigDB::UTF8->open();
+#our $adb = esmith::AccountsDB::UTF8->open();
+#our $pdb = esmith::ConfigDB::UTF8->open('processmail') or die "Could not open processmail DB\n";
 
 our $PanelUser = $ENV{'REMOTE_USER'} ||'';
 $PanelUser = $1 if ($PanelUser =~ /^([a-z][\.\-a-z0-9]*)$/);
@@ -119,7 +119,7 @@ my $pdb;
 sub get_data_for_panel_RULES {
     # Return a hash with the fields required which will be loaded into the shared data 
     my $c = shift;
-    my $pdb = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+    my $pdb = esmith::ConfigDB::UTF8->open('processmail') or die "Could not open processmail DB\n";
     my $PanelUser = $c->get_panel_user();
     my $key = $c->param('Selected');
     
@@ -154,7 +154,7 @@ sub get_data_for_panel_RULES {
 	sub get_data_for_panel_REMOVE {
 		# Return a hash with the fields required which will be loaded into the shared data 
 		my $c = shift;
-		my $pdb = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+		my $pdb = esmith::ConfigDB::UTF8->open('processmail') or die "Could not open processmail DB\n";
 		my $PanelUser = $c->get_panel_user();
 		my $key = $c->param('Selected');
 		my %ret = (
@@ -190,9 +190,9 @@ sub actual_getAllRules {
     my @data;
 
     # Open the required databases
-    my $cdb  = esmith::ConfigDB->open();
-    my $adb  = esmith::AccountsDB->open();
-    my $pdb  = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+    my $cdb  = esmith::ConfigDB::UTF8->open();
+    my $adb  = esmith::AccountsDB::UTF8->open();
+    my $pdb  = esmith::ConfigDB::UTF8->open('processmail') or die "Could not open processmail DB\n";
     my $PanelUser = $c->get_panel_user();
 
     my @rules = $pdb->get_all_by_prop(type => "$PanelUser");
@@ -334,7 +334,7 @@ sub get_getAllRules {
 	sub remove_rule {
 		my $c = shift;
 		my $rule = $c->param('Selected');
-		my $pdb  = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+		my $pdb  = esmith::ConfigDB::UTF8->open('processmail') or die "Could not open processmail DB\n";
 		my $PanelUser = $c->get_panel_user();
 		my $rec = $pdb->get($rule); # || return "Rule:$rule not found";
 		$rec->delete;
@@ -360,7 +360,7 @@ sub get_panel_user
 
 sub get_full_name{
 	my $c = shift;
-	my $adb = esmith::AccountsDB->open();
+	my $adb = esmith::AccountsDB::UTF8->open();
 	my $PanelUser = $c->get_panel_user();
     return  $adb->get_prop($PanelUser, "FirstName") . " " .
             $adb->get_prop($PanelUser, "LastName");
@@ -396,12 +396,19 @@ sub listfolders
 	my %out_dir;
 	$out_dir{"INBOX"} .= "INBOX";
 	$out_dir{""} .= "";
-	for (sort @dirs) {
-	       s/$root\/?\.?//;
-	       my @exclu =("cur", "tmp", "new" , "INBOX" );
-	       next if $_  ~~ @exclu;
-	       $out_dir{$_} .= GetDisplayName(join('/',split('\.', $_)));
-       	}
+	#for (sort @dirs) {
+	       #s/$root\/?\.?//;
+	       #my @exclu =("cur", "tmp", "new" , "INBOX" );
+	       #next if $_  ~~ @exclu;
+	       #$out_dir{$_} .= GetDisplayName(join('/',split('\.', $_)));
+       	#}
+	for my $dir (sort @dirs) {
+		$dir =~ s/$root\/?\.?//;
+		my @exclu = ("cur", "tmp", "new", "INBOX");
+		next if grep { $_ eq $dir } @exclu;
+		$out_dir{$dir} .= GetDisplayName(join('/', split('\.', $dir)));
+	}
+
 	return \%out_dir;
 }
 
@@ -462,7 +469,7 @@ sub get_rule_from_db{
 sub save_rule
 {
     my $c = shift;
-    my $pdb  = esmith::ConfigDB->open('processmail') or die "Could not open processmail DB\n";
+    my $pdb  = esmith::ConfigDB::UTF8->open('processmail') or die "Could not open processmail DB\n";
     my $PanelUser = $c->get_panel_user();
 
     my $rule = $c->param ('key')  || '';

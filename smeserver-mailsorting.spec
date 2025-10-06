@@ -6,7 +6,7 @@ Summary: Lets users configure procmail or maildrop rules.
 %define name smeserver-mailsorting
 Name: %{name}
 %define version 11.0.0
-%define release 3
+%define release 4
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -32,6 +32,9 @@ SME Server enhancement to enable procmail or maildrop filtering for users.
 Optionally provides user panels where users can create mail rules for themselves
 
 %changelog
+* Mon Oct 06 2025 Brian Read <brianr@koozali.org> 11.0.0-4.sme
+- Add UTF8 and avoid potential DB caching problems [SME: 13209]
+
 * Wed May 07 2025 Brian Read <brianr@koozali.org> 11.0.0-3.sme
 - Missed lex file last time, plus extra code for new record [SME:13000]
 - Get validation working.
