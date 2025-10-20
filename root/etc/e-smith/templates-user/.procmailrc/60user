@@ -132,6 +132,9 @@
           $secondtest = "* "."$basis2"."$criterion2"."\n";
         }
 
+        $OUT .= "\n";
+        $OUT .= "# User rule $pmRule";
+
         if ($copy eq 'no')
         {
           $OUT .= "\n";
@@ -162,6 +165,7 @@
           $OUT .= "   $deliver2\n";
           $OUT .= "\}\n";
         }
+        $OUT .= "# End of User rule $pmRule\n";
       }#foreach rule
     }#if rules exist
 }

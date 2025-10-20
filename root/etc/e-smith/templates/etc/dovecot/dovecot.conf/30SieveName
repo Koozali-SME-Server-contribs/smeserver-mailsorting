@@ -1,0 +1,9 @@
+{
+
+$OUT .=<<"END"
+plugin { 
+ sieve = file:/home/e-smith/files/users/%u/.sievefilter
+}
+END
+
+}

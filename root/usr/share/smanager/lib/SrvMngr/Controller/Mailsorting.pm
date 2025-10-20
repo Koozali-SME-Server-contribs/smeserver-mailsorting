@@ -10,10 +10,11 @@ package SrvMngr::Controller::Mailsorting;
 # navigation  : 6000 1200
 # menucat : U
 #
-# name : mailsorting,    method : get,   url : /mailsorting,   ctlact : Mailsorting#main
-# name : mailsortingu,   method : post,  url : /mailsortingu,  ctlact : Mailsorting#do_update
-# name : mailsortingd,   method : get,   url : /mailsortingd,  ctlact : Mailsorting#do_display
+# name : mailsorting,    method : get,    url : /mailsorting,   ctlact : Mailsorting#main
+# name : mailsortingu,   method : post,   url : /mailsortingu,  ctlact : Mailsorting#do_update
+# name : mailsortingd,   method : get,    url : /mailsortingd,  ctlact : Mailsorting#do_display
 # name : mailsortinge,   method : post,   url : /mailsortinge,  ctlact : Mailsorting#do_update
+# name : mailsortingx,   method : get,    url : /mailsortingx,  ctlact : Mailsorting#do_extras
 #
 # routes : end
 #
@@ -52,7 +53,7 @@ my $ndb;
 my $hdb; 
 my $ddb; 
 
-my %ms_data;
+our %ms_data;
 
 require '/usr/share/smanager/lib/SrvMngr/Controller/Mailsorting-Custom.pm';  #The code that is to be added by the developer
 
@@ -121,6 +122,12 @@ sub do_update {
 	
     my $c = shift;
     $c->app->log->info($c->log_req);
+    $c->app->log->info("Updating:".$c->param('user'));
+   
+    #$c->app->log->info($c->dumper($c->req->body_params->to_hash));
+	#$c->app->log->info($c->dumper($c->req->query_params->to_hash));
+	#$c->app->log->info($c->dumper($c->req->params->to_hash));
+
 	my $modul = '';
 
 	#The most common ones - you might want to comment out any not used.
@@ -250,6 +257,11 @@ sub do_display {
 
     my ($c,$trt) = @_;
     $c->app->log->info($c->log_req);
+    
+    #$c->app->log->info($c->dumper($c->req->body_params->to_hash));
+	#$c->app->log->info($c->dumper($c->req->query_params->to_hash));
+	#$c->app->log->info($c->dumper($c->req->params->to_hash));
+
 
 	#The most common ones - you might want to comment out any not used.
 	$cdb = esmith::ConfigDB::UTF8->open()   || die("Couldn't open config db");

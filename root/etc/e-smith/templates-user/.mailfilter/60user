@@ -111,6 +111,8 @@
         }
 
         $OUT .= "\n";
+        $OUT .= "# User rule $pmRule\n";
+
         if ($secondtest eq '')
         {
           if ($basis =~ /(>|<)/)
@@ -159,6 +161,7 @@
           $OUT .= "$deliver1\n";
           $OUT .= "\}\n";
         }
+        $OUT .= "# End of User rule $pmRule\n";
       }#foreach rule
     }#if rules exist
 }

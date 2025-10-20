@@ -1,0 +1,7 @@
+{
+      $OUT .= "\n";
+      $OUT .= "# ----  to the inbox (implicit keep if no rules matched) ------------------\n";
+      $OUT .= "keep;\n";
+      $OUT .= "\n";
+      $OUT .= "# ----  end of rules ------------------\n";
+}

@@ -6,7 +6,7 @@ Summary: Lets users configure procmail or maildrop rules.
 %define name smeserver-mailsorting
 Name: %{name}
 %define version 11.0.0
-%define release 4
+%define release 5
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -32,6 +32,9 @@ SME Server enhancement to enable procmail or maildrop filtering for users.
 Optionally provides user panels where users can create mail rules for themselves
 
 %changelog
+* Sat Oct 11 2025 Brian Read <brianr@koozali.org> 11.0.0-5.sme
+- Add Dovecot Sieve generation and application [SME: 13232]
+
 * Mon Oct 06 2025 Brian Read <brianr@koozali.org> 11.0.0-4.sme
 - Add UTF8 and avoid potential DB caching problems [SME: 13209]
 

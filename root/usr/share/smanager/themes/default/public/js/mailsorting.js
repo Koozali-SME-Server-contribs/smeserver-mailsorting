@@ -3,3 +3,45 @@
 //
 $(document).ready(function() {
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+  // When the select changes, copy selected text (full name) to username field
+  //document.getElementById('account_select').addEventListener('change', function() {
+    //var select = this;
+    //var selectedOption = select.options[select.selectedIndex];
+    //document.getElementById('username_text').value = selectedOption.text;
+  //});
+
+    // On button click, reload page with ?user=<accountname>
+	const applyBtn = document.getElementById('applyBtn');
+	if (applyBtn) {
+	  applyBtn.addEventListener('click', function() {
+		const select = document.getElementById('account_select');
+		const account = select ? select.value : '';
+		const url = new URL('smanager/mailsorting', window.location.origin);
+		if (account) {
+		  url.searchParams.set('account', account);
+		}
+		window.location.href = url.toString();
+	  });
+	}
+
+	const backBtn = document.getElementById('backBtn');
+	if (backBtn) {
+	  backBtn.addEventListener('click', function() {
+		const url = new URL('smanager/mailsorting', window.location.origin);
+		window.location.href = url.toString();
+	  });
+	}
+
+	const generateBtn = document.getElementById('generateBtn');
+	if (generateBtn) {
+	  generateBtn.addEventListener('click', function() {
+		const url = new URL('smanager/mailsortingx?GenerateRule', window.location.origin);
+		//alert(url.toString());
+		window.location.href = url.toString();
+	  });
+	}
+
+
+});

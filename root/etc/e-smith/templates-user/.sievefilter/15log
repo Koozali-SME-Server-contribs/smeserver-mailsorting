@@ -1,0 +1,28 @@
+{
+    use esmith::config;
+    use esmith::db;
+
+    my %processmail;
+    tie %processmail, 'esmith::config', '/home/e-smith/db/processmail';
+
+    $OUT = '';
+
+    # control level of logging (comments only; Sieve has no direct logging)
+    my $loglevel  = db_get_prop(\%processmail, $USERNAME, "loglevel") || 'some';
+    if ($loglevel eq 'none')
+    {
+      $OUT .= "\n";
+      $OUT .= "# ---- logging: none ------------------\n";
+    }
+    elsif ($loglevel eq 'some')
+    {
+      $OUT .= "\n";
+      $OUT .= "# ---- logging: some ------------------\n";
+    }
+    else
+    {
+      $OUT .= "\n";
+      $OUT .= "# ---- logging: verbose (debug) --------------\n";
+    }
+}
+

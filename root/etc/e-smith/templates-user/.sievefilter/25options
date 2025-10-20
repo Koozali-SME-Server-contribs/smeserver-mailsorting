@@ -1,0 +1,9 @@
+{
+      $OUT .= "\n";
+      $OUT .= "# ----  delete duplicates (by Message-ID) -------\n";
+      $OUT .= "if duplicate {\n";
+      $OUT .= "  discard;\n";
+      $OUT .= "  stop;\n";
+      $OUT .= "}\n";
+}
+

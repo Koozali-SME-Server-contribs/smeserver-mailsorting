@@ -35,6 +35,29 @@ my $pdb;
 #my $hdb 
 #my $ddb 
 
+# Extra routine
+	sub do_extras {
+		#my $fred = 1/0;
+		my $c = shift;
+		if (defined $c->param("ApplyRules")){
+			$user = $c->get_panel_user();
+			$res = qx(sieve-filter -W -u $user -e ~$user/.sievefilter INBOX expunge 2>&1 | tee /var/log/sieve-filter.log | grep -v "warning" | grep -v "left message in mailbox 'INBOX'"  |  wc -l);
+			$ms_data{command_result} = ($res == 0) ? 'none' : $res;
+			$c->do_display('TABLE');
+		} elsif (defined $c->param("ReSerialise")) {
+			
+		} elsif (defined $c->param("GenerateRule")) {
+			$res = qx(signal-event mailsorting-conf)
+		}
+		
+		#my $referer = $c->req->headers->referrer;
+		#if ($referer) {
+		  ## Redirect back to the referring URL
+		  #$c->redirect_to($referer);
+		#} else {
+#		}
+	}
+
 # Validation routines - parameters for each panel
 
 	sub validate_TABLE {
@@ -106,18 +129,61 @@ my $pdb;
 	sub get_data_for_panel_TABLE {
 		# Return a hash with the fields required which will be loaded into the shared data 
 		my $c = shift;
+		$cdb  = esmith::ConfigDB::UTF8->open();
+		$adb = esmith::AccountsDB::UTF8->open || die "Couldn't open accounts db";
+		my $PanelUser = $c->get_panel_user();
+		# Count number of emails in top level INBOX
+		my $inbox_dir;
+		if ($PanelUser eq 'admin'){
+			$inbox_dir = "/home/e-smith/Maildir/cur/";
+		} else {
+			$inbox_dir = "/home/e-smith/files/users/$PanelUser/Maildir/cur/";
+		}
+		opendir(my $dh, $inbox_dir) or die "Cannot open directory: $!";
+		my @files = grep { -f "$inbox_dir/$_" && !/^\.{1,2}$/ } readdir($dh);
+		closedir($dh);
+		my $file_count = scalar @files;
+		# Get a list of the users.
+		my @users = $adb->get('admin');
+		push @users, $adb->users();
+		my @actualusers;
+
+		foreach my $user (@users) {
+			push @actualusers, [ $user->key()." - ".$user->prop('FirstName') . " " . $user->prop('LastName'),$user->key()];
+		}
+
+		my $actualusers_ref = \@actualusers;  # array reference of key => firstname.lastname hashrefs
+		
 		my %ret = (
 			'Data1'=>'Data for TABLE', #Example
 			# fields from Inputs in TABLE $fields['TABLE']
-			'account'=>$c->get_panel_user(),
+			'account'=> $PanelUser,
 			'username'=> $c->get_full_name(),
-			
+			'FilterType' => $c->get_filtertype($PanelUser),
+			'Geekmode' => $adb->get_prop($PanelUser, "Geekmode") || FALSE,
+			'EmailCount' => $file_count,
+			'users' => $actualusers_ref
 		);
 		return %ret;
 	}
+	
+sub get_filtertype{
+	my $c = shift;
+	my $PanelUser = shift;
+	$cdb  = esmith::ConfigDB::UTF8->open();
+	$adb = esmith::AccountsDB::UTF8->open || die "Couldn't open accounts db";
+	#Either the filtertype is set per user or it is global
+	my $globalFilterType = $cdb->get_prop('qmail', "FilterType");
+	if (! $globalFilterType) {
+		return $adb->get_prop($PanelUser,'FilterType') || ''
+	} else {
+		return $globalFilterType;
+	}
+}
 
 sub get_data_for_panel_RULES {
     # Return a hash with the fields required which will be loaded into the shared data 
+	my $cdb  = esmith::ConfigDB::UTF8->open();
     my $c = shift;
     my $pdb = esmith::ConfigDB::UTF8->open('processmail') or die "Could not open processmail DB\n";
     my $PanelUser = $c->get_panel_user();
@@ -142,10 +208,18 @@ sub get_data_for_panel_RULES {
     my $rule_info = get_rule_from_db($c, $rule);
     # and add heading message
     $rule_info->{topmessage} = $c->l('ms_You_can_change_the_order');
+    
+	my $FilterType = $c->get_filtertype($PanelUser);
+	my $FilterRule = 'No filter configured';
+	my $DBRemoveRule = "Db entries:".$c->esmith_db_record_to_multiline($pdb,$key,$PanelUser);
+	$FilterRule = "\nProcmail Rule:\n--------------\n".$c->get_procmail_rule($pdb,$key,$PanelUser) if $FilterType eq 'procmail';
+	$FilterRule = "\nMaildrop Rule:\n--------------\n".$c->get_maildrop_rule($pdb,$key,$PanelUser) if $FilterType eq 'maildrop';
+	$FilterRule = "\nDovecot-Sieve Rule:\n----------------------\n".$c->get_sieve_rule($pdb,$key,$PanelUser) if $FilterType eq 'sieve';
 
     # Add/override any fields specific to the panel as needed
     my %ret = (
         %$rule_info,
+        'FilterRule'=> $FilterRule
     );
 
     return %ret;
@@ -154,12 +228,21 @@ sub get_data_for_panel_RULES {
 	sub get_data_for_panel_REMOVE {
 		# Return a hash with the fields required which will be loaded into the shared data 
 		my $c = shift;
+		my $cdb  = esmith::ConfigDB::UTF8->open();
 		my $pdb = esmith::ConfigDB::UTF8->open('processmail') or die "Could not open processmail DB\n";
 		my $PanelUser = $c->get_panel_user();
 		my $key = $c->param('Selected');
+		my $FilterType = $c->get_filtertype($PanelUser);
+		my $FilterRule = 'No filter configured';
+		my $DBRemoveRule = "Db entries:".$c->esmith_db_record_to_multiline($pdb,$key);
+		$FilterRule = "\nProcmail Rule:\n--------------\n".$c->get_procmail_rule($pdb,$key,$PanelUser) if $FilterType eq 'procmail';
+		$FilterRule = "\nMaildrop Rule:\n--------------\n".$c->get_maildrop_rule($pdb,$key,$PanelUser) if $FilterType eq 'maildrop';
+		$FilterRule = "\nDovecot-Sieve Rule:\n----------------------\n".$c->get_sieve_rule($pdb,$key,$PanelUser) if $FilterType eq 'sieve';
+		
 		my %ret = (
 			# fields from Inputs in REMOVE $fields['REMOVE']
-			'RemoveRule'=>"Db entries:\n------------\n".$c->esmith_db_record_to_multiline($pdb,$key)."\n\nProcmail Rule:\n--------------".$c->get_procmail_rule($pdb,$key),
+			'RemoveRule'=> $DBRemoveRule,
+			'FilterRule' => $FilterRule
 		);
 		return %ret;
 	}
@@ -338,6 +421,7 @@ sub get_getAllRules {
 		my $PanelUser = $c->get_panel_user();
 		my $rec = $pdb->get($rule); # || return "Rule:$rule not found";
 		$rec->delete;
+		$c->app->log->info("Running: "."/sbin/e-smith/signal-event mailsorting-conf $PanelUser");
 		unless ( system ("/sbin/e-smith/signal-event mailsorting-conf $PanelUser") == 0 )
 		{ return $self->error('ERROR_UPDATING'); }
 		return 'ok';
@@ -355,7 +439,21 @@ sub create_link{
 sub get_panel_user
 {
 	my $c = shift;
-    return $c->session->{username};
+	my $adb = esmith::AccountsDB::UTF8->open();
+	if (!$c->is_admin){
+		return $c->session->{username};
+	} else {
+		if (my $thisUser = $c->param('account')) {
+			#Check it is a valid user
+			if ($adb->get_prop($thisUser, "FirstName")){
+				return $thisUser
+			} else {
+				return $c->session->{username}
+			}
+		} else {
+			return $c->session->{username}
+		}
+	}
 }
 
 sub get_full_name{
@@ -520,6 +618,7 @@ sub save_rule
     foreach ("criterion","criterion2","action","action2","copy","basis","basis2","deliver","deliver2" )
     { $pdb->set_prop($rule, "$_", $filtered{$_}); }
 
+	$c->app->log->info("Running: "."/sbin/e-smith/signal-event mailsorting-conf $PanelUser");
     unless ( system ("/sbin/e-smith/signal-event mailsorting-conf $PanelUser") == 0 )
     { return 'ERROR_UPDATING'; }
 
@@ -538,7 +637,7 @@ sub esmith_db_record_to_multiline {
         next unless defined $value && $value ne '';
         push @lines, "$field: $value";
     }
-    return join("\n", @lines);
+    return "$key:"."\n------------\n".join("\n", @lines);
 }
 
 sub get_esmith_db_record_hashref {
@@ -549,54 +648,107 @@ sub get_esmith_db_record_hashref {
     return \%props;               # return a hashref
 }
 
+sub get_maildrop_rule {
+	my $c = shift;
+    my ($pdb, $key,$PanelUser) = @_;
+    return $c->extract_rule_from_file("~$PanelUser/.mailfilter",$key)
+}
+
+sub expand_tilde {
+    my ($filename) = @_;
+    # Special case for ~admin and ~admin/...
+    $filename =~ s{\A~admin(?:/|\z)}{/home/e-smith/};
+    # Generic ~ and ~user handling
+    $filename =~ s{\A~([^/]*)}
+                  { $1 ? (getpwnam($1))[7] : ($ENV{HOME} || (getpwuid($<))[7]) }ex;
+    return $filename;
+}
+
+sub extract_rule_from_file {
+    my ($c,$filename, $rule_id) = @_;
+    $c->app->log->info("get rule:$filename");
+    
+    # Expand ~ to full home directory path if present
+    $filename = expand_tilde($filename);
+    $c->app->log->info("get rule:$filename");
+
+    # Read entire file content
+    open my $fh, '<', $filename or die "Could not open file '$filename': $!";
+    local $/;  # Enable slurp mode to read whole file
+    my $content = <$fh>;
+    close $fh;
+    
+    # Prepare start and end markers for the rule
+    my $start_marker = "# User rule $rule_id";
+    my $end_marker = "# End of User rule $rule_id";
+    
+    # Extract the text block between the markers
+    if ($content =~ /(\Q$start_marker\E.*?\Q$end_marker\E)/s) {
+        return $1;  # return matched block including markers
+    } else {
+        return "No matching rule found $filename $rule_id"
+    }
+}
+
+sub get_sieve_rule {
+	my $c = shift;
+    my ($pdb, $key,$PanelUser) = @_;
+    return $c->extract_rule_from_file("~$PanelUser/.sievefilter",$key)
+}
+
 sub get_procmail_rule {
 	my $c = shift;
-	# Logic taken from template expansion 
-    my ($pdb, $key) = @_;
-
-    my $basis      = $pdb->get_prop($key, "basis")      || '';
-    my $criterion  = $pdb->get_prop( $key, "criterion")  || '';
-    my $basis2     = $pdb->get_prop( $key, "basis2")     || '';
-    my $secondtest_orig = $pdb->get_prop( $key, "basis2") || '';
-    my $criterion2 = $pdb->get_prop( $key, "criterion2") || '';
-    my $deliver    = $pdb->get_prop( $key, "deliver")    || '';
-    my $deliver2   = $pdb->get_prop( $key, "deliver2")   || '';
-    my $copy       = $pdb->get_prop( $key, "copy")       || '';
-    my $action     = $pdb->get_prop( $key, "action")     || '';
-    my $action2    = $pdb->get_prop( $key, "action2")    || '';
-
-    # Process basis fields
-    foreach my $b (\$basis, \$basis2) {
-        $$b = $c->process_basis($$b);
-    }
-
-    # Handle spaces in deliver addresses
-    unless (($zarafa1 eq 'enabled') || ($zarafa2 eq 'enabled')) {
-        $_ =~ s/ /\\ /g for ($deliver, $deliver2);
-    }
-
-    # Build delivery paths
-    $deliver = $c->build_delivery_path($action, $deliver, $USERNAME);
-    $deliver2 = $c->build_delivery_path($action2, $deliver2, $USERNAME) if $action2;
-
-    # Construct second test line
-    my $secondtest = $secondtest_orig ? "* $basis2$criterion2\n" : '';
-
-    # Build rule string
-    my $rule = "\n";
-    if ($copy eq 'no') {
-        $rule .= ":0\n* $basis$criterion\n$secondtest$deliver\n";
-    }
-    elsif ($copy eq 'yes' && $action2 eq 'inbox') {
-        $rule .= ":0 c\n* $basis$criterion\n$secondtest$deliver\n";
-    }
-    else {
-        $rule .= ":0\n* $basis$criterion\n$secondtest\{\n"
-               . "   :0 c\n   $deliver\n\n   :0\n   $deliver2\n\}\n";
-    }
-
-    return $rule;
+    my ($pdb, $key,$PanelUser) = @_;
+    return $c->extract_rule_from_file("~$PanelUser/.procmailrc",$key)
 }
+	# No longer needed  - rule extracted from .procmailrc file.
+	#my $c = shift;
+	## Logic taken from template expansion  (dangerous!)
+    #my ($pdb, $key) = @_;
+
+    #my $basis      = $pdb->get_prop($key, "basis")      || '';
+    #my $criterion  = $pdb->get_prop( $key, "criterion")  || '';
+    #my $basis2     = $pdb->get_prop( $key, "basis2")     || '';
+    #my $secondtest_orig = $pdb->get_prop( $key, "basis2") || '';
+    #my $criterion2 = $pdb->get_prop( $key, "criterion2") || '';
+    #my $deliver    = $pdb->get_prop( $key, "deliver")    || '';
+    #my $deliver2   = $pdb->get_prop( $key, "deliver2")   || '';
+    #my $copy       = $pdb->get_prop( $key, "copy")       || '';
+    #my $action     = $pdb->get_prop( $key, "action")     || '';
+    #my $action2    = $pdb->get_prop( $key, "action2")    || '';
+
+    ## Process basis fields
+    #foreach my $b (\$basis, \$basis2) {
+        #$$b = $c->process_basis($$b);
+    #}
+
+    ## Handle spaces in deliver addresses
+    #unless (($zarafa1 eq 'enabled') || ($zarafa2 eq 'enabled')) {
+        #$_ =~ s/ /\\ /g for ($deliver, $deliver2);
+    #}
+
+    ## Build delivery paths
+    #$deliver = $c->build_delivery_path($action, $deliver, $USERNAME);
+    #$deliver2 = $c->build_delivery_path($action2, $deliver2, $USERNAME) if $action2;
+
+    ## Construct second test line
+    #my $secondtest = $secondtest_orig ? "* $basis2$criterion2\n" : '';
+
+    ## Build rule string
+    #my $rule = "\n";
+    #if ($copy eq 'no') {
+        #$rule .= ":0\n* $basis$criterion\n$secondtest$deliver\n";
+    #}
+    #elsif ($copy eq 'yes' && $action2 eq 'inbox') {
+        #$rule .= ":0 c\n* $basis$criterion\n$secondtest$deliver\n";
+    #}
+    #else {
+        #$rule .= ":0\n* $basis$criterion\n$secondtest\{\n"
+               #. "   :0 c\n   $deliver\n\n   :0\n   $deliver2\n\}\n";
+    #}
+
+    #return $rule;
+#}
 
 sub process_basis {
     my ($c,$basis) = @_;

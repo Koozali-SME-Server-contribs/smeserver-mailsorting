@@ -1,0 +1,236 @@
+{
+    use esmith::config;
+    use esmith::db;
+
+    my %processmail;
+    tie %processmail, 'esmith::config', '/home/e-smith/db/processmail';
+
+    #get Global rules
+    my @pmGlobRules = ();
+    foreach (sort keys %processmail)
+    {
+        push (@pmGlobRules, $_)
+            if (db_get_type(\%processmail, $_) eq 'pmGlobalRule');
+    }
+
+    #if they have rules add them to the templete
+    my $pmGlobRules = @pmGlobRules || '0';
+    if ($pmGlobRules > 0)
+    {
+      $OUT .= "\n";
+      $OUT .= "# --- start of Global Sieve rules ---------\n";
+
+      my $pmGlobRule;
+      foreach $pmGlobRule (sort {$a <=> $b} @pmGlobRules)
+      {
+        my $basis      = db_get_prop(\%processmail, $pmGlobRule, "basis")      || '';
+        my $criterion  = db_get_prop(\%processmail, $pmGlobRule, "criterion")  || '';
+        my $basis2     = db_get_prop(\%processmail, $pmGlobRule, "basis2")     || '';
+        my $secondtest = db_get_prop(\%processmail, $pmGlobRule, "basis2")     || '';
+        my $criterion2 = db_get_prop(\%processmail, $pmGlobRule, "criterion2") || '';
+        my $deliver    = db_get_prop(\%processmail, $pmGlobRule, "deliver")    || '';
+        my $deliver2   = db_get_prop(\%processmail, $pmGlobRule, "deliver2")   || '';
+        my $copy       = db_get_prop(\%processmail, $pmGlobRule, "copy")       || '';
+        my $action     = db_get_prop(\%processmail, $pmGlobRule, "action")     || '';
+        my $action2    = db_get_prop(\%processmail, $pmGlobRule, "action2")    || '';
+
+        # prepare/escape criteria for Sieve strings
+        my $crit1 = $criterion; $crit1 =~ s/\\/\\\\/g; $crit1 =~ s/"/\\"/g;
+        my $crit2 = $criterion2; $crit2 =~ s/\\/\\\\/g; $crit2 =~ s/"/\\"/g;
+
+        # build condition 1
+        my $cond1 = '';
+        if ($basis eq '<' || $basis eq '>')
+        {
+          my $num = $criterion; $num =~ s/\s+//g;
+          $cond1 = ($basis eq '<') ? "size :under $num" : "size :over $num";
+        }
+        elsif ($basis eq 'TO_')
+        {
+          $cond1 = "anyof (address :all :contains [\"to\",\"cc\",\"bcc\"] \"$crit1\")";
+        }
+        elsif ($basis eq 'headers')
+        {
+          my $h = $criterion;
+          if ($h =~ /^\s*\^?([A-Za-z0-9\-]+)\s*:\s*(.*)$/s)
+          {
+            my $hn = $1; my $hv = $2; $hv =~ s/\\/\\\\/g; $hv =~ s/"/\\"/g;
+            $cond1 = "header :regex \"$hn\" \"$hv\"";
+          }
+          else
+          {
+            $cond1 = "anyof (header :regex \"Subject\" \"$crit1\", address :all :regex [\"from\",\"to\",\"cc\"] \"$crit1\")";
+          }
+        }
+        else
+        {
+          my %addr = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
+          if ($addr{$basis})
+          {
+            my $lb = lc $basis;
+            $cond1 = "address :all :contains \"$lb\" \"$crit1\"";
+          }
+          else
+          {
+            $cond1 = "header :contains \"$basis\" \"$crit1\"";
+          }
+        }
+
+        # build condition 2 if present
+        my $cond2 = '';
+        if ($secondtest ne '')
+        {
+          if ($basis2 eq '<' || $basis2 eq '>')
+          {
+            my $num2 = $criterion2; $num2 =~ s/\s+//g;
+            $cond2 = ($basis2 eq '<') ? "size :under $num2" : "size :over $num2";
+          }
+          elsif ($basis2 eq 'TO_')
+          {
+            $cond2 = "anyof (address :all :contains [\"to\",\"cc\",\"bcc\"] \"$crit2\")";
+          }
+          elsif ($basis2 eq 'headers')
+          {
+            my $hh = $criterion2;
+            if ($hh =~ /^\s*\^?([A-Za-z0-9\-]+)\s*:\s*(.*)$/s)
+            {
+              my $hn2 = $1; my $hv2 = $2; $hv2 =~ s/\\/\\\\/g; $hv2 =~ s/"/\\"/g;
+              $cond2 = "header :regex \"$hn2\" \"$hv2\"";
+            }
+            else
+            {
+              $cond2 = "anyof (header :regex \"Subject\" \"$crit2\", address :all :regex [\"from\",\"to\",\"cc\"] \"$crit2\")";
+            }
+          }
+          else
+          {
+            my %addr2 = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
+            if ($addr2{$basis2})
+            {
+              my $lb2 = lc $basis2;
+              $cond2 = "address :all :contains \"$lb2\" \"$crit2\"";
+            }
+            else
+            {
+              $cond2 = "header :contains \"$basis2\" \"$crit2\"";
+            }
+          }
+        }
+
+        # mailbox names for sort/create
+        my $mb1 = $deliver; $mb1 =~ s/"/\\"/g;
+        my $mb2 = $deliver2; $mb2 =~ s/"/\\"/g;
+
+        my $mbox1 = ($mb1 eq 'junkmail') ? "INBOX.Junk" : "INBOX.$mb1";
+        my $mbox2 = ($mb2 eq 'junkmail') ? "INBOX.Junk" : "INBOX.$mb2";
+
+        # begin rule
+        $OUT .= "\n";
+        $OUT .= "# Global rule $pmGlobRule\n";
+        if ($cond2 ne '')
+        {
+          $OUT .= "if allof ($cond1, $cond2) \{\n";
+        }
+        else
+        {
+          $OUT .= "if $cond1 \{\n";
+        }
+
+        # actions
+        if ($copy eq 'no')
+        {
+          if ($action eq 'sort' || $action eq 'create')
+          {
+            $OUT .= "  fileinto \"$mbox1\";\n";
+            $OUT .= "  stop;\n";
+          }
+          elsif ($action eq 'forward')
+          {
+            my $addr = $deliver; $addr =~ s/"/\\"/g;
+            $OUT .= "  redirect \"$addr\";\n";
+            $OUT .= "  stop;\n";
+          }
+          elsif ($action eq 'delete')
+          {
+            $OUT .= "  discard;\n";
+            $OUT .= "  stop;\n";
+          }
+          else
+          {
+            $OUT .= "  # unsupported action \"$action\"; keeping in INBOX\n";
+            $OUT .= "  keep;\n";
+            $OUT .= "  stop;\n";
+          }
+        }
+        elsif ($copy eq 'yes' && $action2 eq 'inbox')
+        {
+          if ($action eq 'sort' || $action eq 'create')
+          {
+            $OUT .= "  fileinto :copy \"$mbox1\";\n";
+            $OUT .= "  keep;\n";
+            $OUT .= "  stop;\n";
+          }
+          elsif ($action eq 'forward')
+          {
+            my $addr = $deliver; $addr =~ s/"/\\"/g;
+            $OUT .= "  redirect :copy \"$addr\";\n";
+            $OUT .= "  keep;\n";
+            $OUT .= "  stop;\n";
+          }
+          elsif ($action eq 'delete')
+          {
+            $OUT .= "  discard;\n";
+            $OUT .= "  stop;\n";
+          }
+          else
+          {
+            $OUT .= "  # unsupported action \"$action\"; keeping in INBOX\n";
+            $OUT .= "  keep;\n";
+            $OUT .= "  stop;\n";
+          }
+        }
+        else
+        {
+          # two deliveries (copy + second action)
+          if ($action eq 'sort' || $action eq 'create')
+          {
+            $OUT .= "  fileinto :copy \"$mbox1\";\n";
+          }
+          elsif ($action eq 'forward')
+          {
+            my $addr = $deliver; $addr =~ s/"/\\"/g;
+            $OUT .= "  redirect :copy \"$addr\";\n";
+          }
+          elsif ($action eq 'delete')
+          {
+            $OUT .= "  discard;\n";
+          }
+          else
+          {
+            $OUT .= "  # unsupported primary action \"$action\"\n";
+          }
+
+          if ($action2 eq 'sort')
+          {
+            $OUT .= "  fileinto \"$mbox2\";\n";
+          }
+          elsif ($action2 eq 'forward')
+          {
+            my $addr2 = $deliver2; $addr2 =~ s/"/\\"/g;
+            $OUT .= "  redirect \"$addr2\";\n";
+          }
+          elsif ($action2 eq 'inbox')
+          {
+            $OUT .= "  keep;\n";
+          }
+          else
+          {
+            $OUT .= "  # unsupported secondary action \"$action2\"\n";
+          }
+          $OUT .= "  stop;\n";
+        }
+
+        $OUT .= "\}\n";
+      }#foreach rule
+    }#if rules exist
+}

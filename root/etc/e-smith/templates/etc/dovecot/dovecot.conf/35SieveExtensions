@@ -1,0 +1,9 @@
+{
+$OUT .=<<"END"
+plugin {
+  sieve_extensions = +fileinto +copy +regex +mime +body +duplicate
+}
+END
+}
+
+
