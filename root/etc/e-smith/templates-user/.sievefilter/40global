@@ -2,6 +2,96 @@
     use esmith::config;
     use esmith::db;
 
+    # Quote for Sieve string literals (escape " and \ for Sieve)
+    sub sieve_quote {
+        my ($s) = @_;
+        $s //= '';
+        $s =~ s/\\/\\\\/g;   # backslash -> double backslash
+        $s =~ s/"/\\"/g;     # quote -> escaped quote
+        return $s;
+    }
+
+    # Prepare a regex pattern for embedding in a Sieve string (legacy fallback)
+    sub sieve_regex_quote_basic {
+        my ($s) = @_;
+        $s //= '';
+        $s =~ s/([\[\]\.])/\\$1/g;  # make [ ] . literal in regex
+        $s =~ s/\\/\\\\/g;          # escape backslashes for Sieve string
+        $s =~ s/"/\\"/g;            # escape quotes for Sieve string
+        return $s;
+    }
+
+    # Pass through a true regex pattern but escape for Sieve string literal.
+    sub sieve_regex_passthrough {
+        my ($s) = @_;
+        $s //= '';
+        $s =~ s/\\/\\\\/g;   # escape backslashes for Sieve string
+        $s =~ s/"/\\"/g;     # escape quotes for Sieve string
+        return $s;
+    }
+
+    # Normalize DB input for non-regex (contains) tests:
+    # - remove user-added escapes for many common punctuation
+    # - strip a leading "Subject.*" (case-insensitive) if present
+    sub normalize_db_pattern {
+        my ($s) = @_;
+        $s //= '';
+        $s =~ s/\\([\[\]\.\-\(\)\{\}\+\?\^\$\|])/$1/g; # unescape common punctuation
+        $s =~ s/^\s*subject\s*\.\*\s*//i;              # drop leading Subject.*
+        $s =~ s/^\s+|\s+$//g;                          # trim
+        return $s;
+    }
+
+    # Simplify an email-like pattern to a plain substring for address tests.
+    # Example: ".*user@domain\.tld" -> "user@domain.tld".
+    sub simplify_email_value {
+        my ($s) = @_;
+        $s //= '';
+        $s =~ s/^\s+|\s+$//g;
+        return '' if $s eq '';
+        $s =~ s/\.\*//g;   # remove wildcard segments
+        # unescape common punctuation including @
+        $s =~ s/\\([@\[\]\.\-\(\)\{\}\+\?\^\$\|])/$1/g;
+        $s =~ s/^\s+|\s+$//g;
+        return $s;
+    }
+
+    # Extract a domain from a simplified email-like string.
+    # Returns '' if no clear domain found.
+    sub extract_domain {
+        my ($s) = @_;
+        $s //= '';
+        $s =~ s/^\s+|\s+$//g;
+        return '' if $s eq '';
+        if ($s =~ /@([^@\s<>"',;]+)/) {
+            my $d = $1;
+            $d =~ s/^[<"]+|[>"]+$//g;
+            $d =~ s/[,"';].*$//;
+            return lc $d;
+        }
+        # bare domain case (no @)
+        if ($s =~ /^[A-Za-z0-9](?:[A-Za-z0-9\.\-]*[A-Za-z0-9])?\.[A-Za-z0-9\-]{2,}$/) {
+            return lc $s;
+        }
+        return '';
+    }
+
+    # Build a robust Subject contains test:
+    # - raw header :contains "Subject" original
+    # - MIME-decoded header :mime :contains "Subject" underscore->space variant
+    sub build_subject_contains_anyof {
+        my ($p) = @_;
+        my $p_us2sp = $p; $p_us2sp =~ s/_/ /g;
+        return "anyof (header :contains \"Subject\" \"$p\", header :mime :contains \"Subject\" \"$p_us2sp\")";
+    }
+
+    # Build Subject+addresses fallback anyof clause
+    sub build_subject_addr_contains_anyof {
+        my ($p) = @_;
+        my $p_us2sp = $p; $p_us2sp =~ s/_/ /g;
+        return "anyof (header :contains \"Subject\" \"$p\", header :mime :contains \"Subject\" \"$p_us2sp\", address :all :contains [\"from\",\"to\",\"cc\"] \"$p\")";
+    }
+
     my %processmail;
     tie %processmail, 'esmith::config', '/home/e-smith/db/processmail';
 
@@ -18,7 +108,7 @@
     if ($pmGlobRules > 0)
     {
       $OUT .= "\n";
-      $OUT .= "# --- start of Global Sieve rules ---------\n";
+      $OUT .= "# --- start of Global Sieve rules (".$pmGlobRules.")---------\n";
 
       my $pmGlobRule;
       foreach $pmGlobRule (sort {$a <=> $b} @pmGlobRules)
@@ -34,9 +124,13 @@
         my $action     = db_get_prop(\%processmail, $pmGlobRule, "action")     || '';
         my $action2    = db_get_prop(\%processmail, $pmGlobRule, "action2")    || '';
 
-        # prepare/escape criteria for Sieve strings
-        my $crit1 = $criterion; $crit1 =~ s/\\/\\\\/g; $crit1 =~ s/"/\\"/g;
-        my $crit2 = $criterion2; $crit2 =~ s/\\/\\\\/g; $crit2 =~ s/"/\\"/g;
+        # Normalize DB criteria (for contains/fallback paths)
+        my $norm1 = normalize_db_pattern($criterion);
+        my $norm2 = normalize_db_pattern($criterion2);
+
+        # Prepare strings for contains tests
+        my $crit1 = sieve_quote($norm1);
+        my $crit2 = sieve_quote($norm2);
 
         # build condition 1
         my $cond1 = '';
@@ -51,28 +145,83 @@
         }
         elsif ($basis eq 'headers')
         {
-          my $h = $criterion;
-          if ($h =~ /^\s*\^?([A-Za-z0-9\-]+)\s*:\s*(.*)$/s)
+          # Use raw DB value to preserve regex meta (.*, [], \., etc.) for parsing
+          my $raw = $criterion // '';
+          my $h = $raw; $h =~ s/^\s+|\s+$//g;
+
+          # Parse "HeaderName(s): value" (accept (From|To):... or \(From\|To\):...)
+          if ($h =~ /^\s*\^?\s*(.*?)\s*:\s*(.*)$/s)
           {
-            my $hn = $1; my $hv = $2; $hv =~ s/\\/\\\\/g; $hv =~ s/"/\\"/g;
-            $cond1 = "header :regex \"$hn\" \"$hv\"";
+            my ($names, $hv) = ($1, $2);
+            $names =~ s/^\s*(?:\\?\()\s*//;  # optional leading ( or \(
+            $names =~ s/\s*(?:\\?\))\s*$//;  # optional trailing ) or \)
+            $names =~ s/\\\|/|/g;            # treat \| as |
+            my @hn = split /\|/, $names;
+            @hn = grep { defined $_ && $_ ne '' } @hn;
+
+            if (@hn) {
+              my %addr = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
+              my $all_addr = 1; for my $n (@hn) { $all_addr &&= exists $addr{$n}; }
+              my $hv_simple = simplify_email_value($hv);
+              my $hv_domain = extract_domain($hv_simple);
+
+              if ($all_addr && $hv_domain ne '') {
+                my @lb = map { lc $_ } @hn;
+                my $hn_list = join '","', @lb;
+                my $dom_q = sieve_quote($hv_domain);
+                $cond1 = "address :domain :is [\"$hn_list\"] \"$dom_q\"";
+              } else {
+                # Fall back to true regex against listed headers
+                my @hn_q = map { sieve_quote($_) } @hn;
+                my $hn_list = join '","', @hn_q;
+                my $hv_re = sieve_regex_passthrough($hv);
+                $cond1 = "header :regex [\"$hn_list\"] \"$hv_re\"";
+              }
+            }
+            else {
+              # No valid header names extracted: prefer address match only if email/domain-like
+              my $hv_simple = simplify_email_value($h);
+              my $hv_domain = extract_domain($hv_simple);
+              if ($hv_domain ne '') {
+                my $dq = sieve_quote($hv_domain);
+                $cond1 = "address :domain :is [\"from\",\"to\",\"cc\"] \"$dq\"";
+              } else {
+                my $p = sieve_quote($norm1);
+                $cond1 = build_subject_addr_contains_anyof($p);
+              }
+            }
           }
           else
           {
-            $cond1 = "anyof (header :regex \"Subject\" \"$crit1\", address :all :regex [\"from\",\"to\",\"cc\"] \"$crit1\")";
+            # No "Header: value" structure: prefer address match only if email/domain-like
+            my $hv_simple = simplify_email_value($h);
+            my $hv_domain = extract_domain($hv_simple);
+            if ($hv_domain ne '') {
+              my $dq = sieve_quote($hv_domain);
+              $cond1 = "address :domain :is [\"from\",\"to\",\"cc\"] \"$dq\"";
+            } else {
+              my $p = sieve_quote($norm1);
+              $cond1 = build_subject_addr_contains_anyof($p);
+            }
           }
         }
         else
         {
-          my %addr = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
-          if ($addr{$basis})
-          {
-            my $lb = lc $basis;
-            $cond1 = "address :all :contains \"$lb\" \"$crit1\"";
-          }
-          else
-          {
-            $cond1 = "header :contains \"$basis\" \"$crit1\"";
+          # Non-"headers" basis (explicit header names)
+          if (lc($basis) eq 'subject') {
+            my $p = $crit1;
+            $cond1 = build_subject_contains_anyof($p);
+          } else {
+            my %addr = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
+            if ($addr{$basis})
+            {
+              my $lb = lc $basis;
+              $cond1 = "address :all :contains \"$lb\" \"$crit1\"";
+            }
+            else
+            {
+              $cond1 = "header :contains \"$basis\" \"$crit1\"";
+            }
           }
         }
 
@@ -91,38 +240,89 @@
           }
           elsif ($basis2 eq 'headers')
           {
-            my $hh = $criterion2;
-            if ($hh =~ /^\s*\^?([A-Za-z0-9\-]+)\s*:\s*(.*)$/s)
+            my $raw2 = $criterion2 // '';
+            my $hh = $raw2; $hh =~ s/^\s+|\s+$//g;
+
+            if ($hh =~ /^\s*\^?\s*(.*?)\s*:\s*(.*)$/s)
             {
-              my $hn2 = $1; my $hv2 = $2; $hv2 =~ s/\\/\\\\/g; $hv2 =~ s/"/\\"/g;
-              $cond2 = "header :regex \"$hn2\" \"$hv2\"";
+              my ($names2, $hv2) = ($1, $2);
+              $names2 =~ s/^\s*(?:\\?\()\s*//;
+              $names2 =~ s/\s*(?:\\?\))\s*$//;
+              $names2 =~ s/\\\|/|/g;
+              my @hn2 = split /\|/, $names2;
+              @hn2 = grep { defined $_ && $_ ne '' } @hn2;
+
+              if (@hn2) {
+                my %addr2 = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
+                my $all_addr2 = 1; for my $n2 (@hn2) { $all_addr2 &&= exists $addr2{$n2}; }
+                my $hv2_simple = simplify_email_value($hv2);
+                my $hv2_domain = extract_domain($hv2_simple);
+
+                if ($all_addr2 && $hv2_domain ne '') {
+                  my @lb2 = map { lc $_ } @hn2;
+                  my $hn2_list = join '","', @lb2;
+                  my $dq2 = sieve_quote($hv2_domain);
+                  $cond2 = "address :domain :is [\"$hn2_list\"] \"$dq2\"";
+                } else {
+                  my @hn2_q = map { sieve_quote($_) } @hn2;
+                  my $hn2_list = join '","', @hn2_q;
+                  my $hv2_re = sieve_regex_passthrough($hv2);
+                  $cond2 = "header :regex [\"$hn2_list\"] \"$hv2_re\"";
+                }
+              }
+              else {
+                # No valid header names: prefer address match only if email/domain-like
+                my $hv2_simple = simplify_email_value($hh);
+                my $hv2_domain = extract_domain($hv2_simple);
+                if ($hv2_domain ne '') {
+                  my $dq2 = sieve_quote($hv2_domain);
+                  $cond2 = "address :domain :is [\"from\",\"to\",\"cc\"] \"$dq2\"";
+                } else {
+                  my $p2 = sieve_quote($norm2);
+                  $cond2 = build_subject_addr_contains_anyof($p2);
+                }
+              }
             }
             else
             {
-              $cond2 = "anyof (header :regex \"Subject\" \"$crit2\", address :all :regex [\"from\",\"to\",\"cc\"] \"$crit2\")";
+              # No "Header: value" structure: prefer address match only if email/domain-like
+              my $hv2_simple = simplify_email_value($hh);
+              my $hv2_domain = extract_domain($hv2_simple);
+              if ($hv2_domain ne '') {
+                my $dq2 = sieve_quote($hv2_domain);
+                $cond2 = "address :domain :is [\"from\",\"to\",\"cc\"] \"$dq2\"";
+              } else {
+                my $p2 = sieve_quote($norm2);
+                $cond2 = build_subject_addr_contains_anyof($p2);
+              }
             }
           }
           else
           {
-            my %addr2 = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
-            if ($addr2{$basis2})
-            {
-              my $lb2 = lc $basis2;
-              $cond2 = "address :all :contains \"$lb2\" \"$crit2\"";
-            }
-            else
-            {
-              $cond2 = "header :contains \"$basis2\" \"$crit2\"";
+            if (lc($basis2) eq 'subject') {
+              my $p2 = $crit2;
+              $cond2 = build_subject_contains_anyof($p2);
+            } else {
+              my %addr2 = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
+              if ($addr2{$basis2})
+              {
+                my $lb2 = lc $basis2;
+                $cond2 = "address :all :contains \"$lb2\" \"$crit2\"";
+              }
+              else
+              {
+                $cond2 = "header :contains \"$basis2\" \"$crit2\"";
+              }
             }
           }
         }
 
-        # mailbox names for sort/create
-        my $mb1 = $deliver; $mb1 =~ s/"/\\"/g;
-        my $mb2 = $deliver2; $mb2 =~ s/"/\\"/g;
+        # mailbox names for sort/create (sanitize: turn "/" into "." to avoid invalid names)
+        my $mb1 = $deliver;  $mb1  =~ s/"/\\"/g; $mb1 =~ s|/|.|g;
+        my $mb2 = $deliver2; $mb2  =~ s/"/\\"/g; $mb2 =~ s|/|.|g;
 
-        my $mbox1 = ($mb1 eq 'junkmail') ? "INBOX.Junk" : "INBOX.$mb1";
-        my $mbox2 = ($mb2 eq 'junkmail') ? "INBOX.Junk" : "INBOX.$mb2";
+        my $mbox1 = ($mb1 eq 'junkmail') ? "Junk" : "$mb1";
+        my $mbox2 = ($mb2 eq 'junkmail') ? "Junk" : "$mb2";
 
         # begin rule
         $OUT .= "\n";
@@ -231,6 +431,7 @@
         }
 
         $OUT .= "\}\n";
+        $OUT .= "# End of Global rule $pmGlobRule\n";
       }#foreach rule
     }#if rules exist
 }

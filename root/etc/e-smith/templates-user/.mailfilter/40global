@@ -2,16 +2,6 @@
     use esmith::config;
     use esmith::db;
 
-    use constant REGEX_DELIM => '/';
-
-    sub quote_regex {
-        my ($pattern) = @_;
-        my $delim = REGEX_DELIM;
-        # Escape delimiter characters inside pattern
-        $pattern =~ s/\Q$delim\E/\\$delim/g;
-        return $delim . $pattern . $delim;
-    }
-
     my %conf;
     tie %conf, 'esmith::config';
 
@@ -41,7 +31,7 @@
     my $pmGlobRules = @pmGlobRules || '0';
     if ($pmGlobRules > 0) {
       $OUT .= "\n";
-      $OUT .= "# ----start of Global rules--------\n";
+      $OUT .= "# ----start of Global rules ($pmGlobRules)--------\n";
 
       foreach my $pmGlobRule (sort { $a <=> $b } @pmGlobRules) {
         my $basis      = db_get_prop(\%processmail, $pmGlobRule, "basis")      || '';
@@ -55,86 +45,115 @@
         my $action     = db_get_prop(\%processmail, $pmGlobRule, "action")     || '';
         my $action2    = db_get_prop(\%processmail, $pmGlobRule, "action2")    || '';
 
-          if ($basis eq 'headers') {
+          ## headers include the basis in the criterion
+          if ($basis eq 'headers')
+          {
             $basis = $criterion;
             $criterion = '';
           }
 
-          if ($basis2 eq 'headers') {
+          if ($basis2 eq 'headers')
+          {
             $basis2 = $criterion2;
             $criterion2 = '';
           }
 
-        foreach ($basis, $basis2) {
-          if ($_ eq 'TO_') {
+        ## convert to procmail 'TO_' macro equivalent  ??
+        foreach ($basis, $basis2)
+        {
+          if ($_ eq 'TO_')
+          {
+            #$_ = '((Original-)?(Resent-)?(To|Cc|Bcc)|(X-Envelope|Apparently(-Resent)?)-To)';
             $_ = '(To|Cc)';
           }
         }
 
-        my $deliver1 = '';
-        if ($action eq 'sort') {
-          $deliver1 = "to \"Maildir/" . "$sep" . "$deliver" . "/\"";
+        ## construct the deliver line
+        if ($action eq 'sort')
+        {
+          # to a folder
+          $deliver1 = "to \"Maildir/"."$sep"."$deliver"."/\"";
         }
-        elsif ($action eq 'forward') {
-          $deliver1 = "to " . "\"!$deliver\"";
+        elsif ($action eq 'forward')
+        {
+          # to an email
+          $deliver1 = "to "."\"!$deliver\"";
         }
-        elsif ($action eq 'delete') {
-          $deliver1 = "log \" --deleted --\" \n log \"\" \n exit";
+        elsif ($action eq 'delete')
+        {
+          # delete it, report, and add a blank line
+          $deliver1 = "log \"--- $basis $criterion --deleted --\" \n log \"\" \n exit";
         }
-        else {
+        else
+        {
+          # freeform
           $deliver1 = "$deliver";
         }
 
-        my $deliver2 = '';
-        if ($action2 eq 'sort') {
-          $deliver2 = "\"Maildir/" . "$sep" . "$deliver2" . "/\"";
+        ## construct the 2nd deliver line
+        if ($action2 eq 'sort')
+        {
+          # to a folder
+          $deliver2 = "\"Maildir/"."$sep"."$deliver2"."/\"";
         }
-        elsif ($action2 eq 'forward') {
+        elsif ($action2 eq 'forward')
+        {
+          # to an email
           $deliver2 = "\"!$deliver2\"";
         }
 
         $OUT .= "\n";
-        if ($secondtest eq '') {
-          if ($basis =~ /(>|<)/) {
+        $OUT .= "# User rule $pmGlobRule\n";
+
+        if ($secondtest eq '')
+        {
+          if ($basis =~ /(>|<)/)
+          {
             $OUT .= "if ( \$SIZE $basis $criterion )\n";
           }
-          else {
-            my $regex = quote_regex("^$basis.*$criterion");
-            $OUT .= "if ( $regex )\n";
+          else
+          {
+            $OUT .= "if ( /^"."$basis".".*$criterion/ )\n";
           }
           $OUT .= "\{\n";
           $OUT .= "log \"--------- match user rule -- \"\n";
           $OUT .= "log \"--------- $basis $criterion -- \"\n";
 
         }
-        else {
-          if ($basis =~ /(>|<)/) {
-            $OUT .= "if (( \$SIZE $basis $criterion ) && ( /^" . "$basis2" . ".*$criterion2/ ))\n";
+        #basis2 can't test on size
+        else
+        {
+          if ($basis =~ /(>|<)/)
+          {
+            $OUT .= "if (( \$SIZE $basis $criterion ) && ( /^"."$basis2".".*$criterion2/ ))\n";
           }
-          else {
-            my $regex1 = quote_regex("^$basis.*$criterion");
-            my $regex2 = quote_regex("^$basis2.*$criterion2");
-            $OUT .= "if (( $regex1 ) && ( $regex2 ))\n";
+          else
+          {
+            $OUT .= "if (( /^"."$basis".".*$criterion/) && (/^"."$basis2".".*$criterion2/ ))\n";
           }
           $OUT .= "\{\n";
           $OUT .= "log \"--- match user rule ------------- \"\n";
           $OUT .= "log \"--- $basis $criterion & $basis2 $criterion2 -- \"\n";
         }
 
-        if ($copy eq 'no') {
+        if ($copy eq 'no')
+        {
           $OUT .= "$deliver1\n";
           $OUT .= "\}\n";
         }
-        elsif ($copy eq 'yes' && $action2 eq 'inbox') {
+        elsif ($copy eq 'yes' && $action2 eq 'inbox')
+        {
           $OUT .= "cc Maildir\n";
           $OUT .= "$deliver1\n";
           $OUT .= "\}\n";
         }
-        else {
+        else
+        {
           $OUT .= "cc $deliver2\n";
           $OUT .= "$deliver1\n";
           $OUT .= "\}\n";
         }
-      }
-    }
+        $OUT .= "# End of Global rule $pmGlobRule\n";
+      }#foreach rule
+    }#if rules exist
 }
