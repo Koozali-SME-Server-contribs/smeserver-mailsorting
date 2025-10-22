@@ -14,7 +14,7 @@
 		%= hidden_field 'trt' => $ms_data->{trt}
 		%# die("here");
 		%= hidden_field 'Selected' => $c->param('Selected')
-		%= hidden_field ''account'' => $c->param('account')
+		%= hidden_field 'account' => $c->param('account')
 
 		%# Inputs etc in here.
 

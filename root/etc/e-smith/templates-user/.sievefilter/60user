@@ -56,6 +56,14 @@
         return $s;
     }
 
+    # Detect a full email address (simple, robust)
+    sub is_full_email {
+        my ($s) = @_;
+        $s //= '';
+        $s =~ s/^\s+|\s+$//g;
+        return ($s =~ /^[^@\s<>"',;]+@[^@\s<>"',;]+$/) ? 1 : 0;
+    }
+
     # Extract a domain from a simplified email-like string.
     # Returns '' if no clear domain found.
     sub extract_domain {
@@ -165,24 +173,38 @@
               my $hv_simple = simplify_email_value($hv);
               my $hv_domain = extract_domain($hv_simple);
 
-              if ($all_addr && $hv_domain ne '') {
+              if ($all_addr) {
                 my @lb = map { lc $_ } @hn;
                 my $hn_list = join '","', @lb;
-                my $dom_q = sieve_quote($hv_domain);
-                $cond1 = "address :domain :is [\"$hn_list\"] \"$dom_q\"";
+                if (is_full_email($hv_simple)) {
+                  my $addr_q = sieve_quote($hv_simple);
+                  $cond1 = "address :is [\"$hn_list\"] \"$addr_q\"";
+                } elsif ($hv_domain ne '') {
+                  my $dom_q = sieve_quote($hv_domain);
+                  $cond1 = "address :domain :is [\"$hn_list\"] \"$dom_q\"";
+                } else {
+                  # Fall back to true regex against listed headers
+                  my @hn_q = map { sieve_quote($_) } @hn;
+                  my $hn_list_q = join '","', @hn_q;
+                  my $hv_re = sieve_regex_passthrough($hv);
+                  $cond1 = "header :regex [\"$hn_list_q\"] \"$hv_re\"";
+                }
               } else {
-                # Fall back to true regex against listed headers
+                # Mixed/non-address headers: regex against the listed headers
                 my @hn_q = map { sieve_quote($_) } @hn;
-                my $hn_list = join '","', @hn_q;
+                my $hn_list_q = join '","', @hn_q;
                 my $hv_re = sieve_regex_passthrough($hv);
-                $cond1 = "header :regex [\"$hn_list\"] \"$hv_re\"";
+                $cond1 = "header :regex [\"$hn_list_q\"] \"$hv_re\"";
               }
             }
             else {
               # No valid header names extracted: prefer address match only if email/domain-like
               my $hv_simple = simplify_email_value($h);
               my $hv_domain = extract_domain($hv_simple);
-              if ($hv_domain ne '') {
+              if (is_full_email($hv_simple)) {
+                my $aq = sieve_quote($hv_simple);
+                $cond1 = "address :is [\"from\",\"to\",\"cc\"] \"$aq\"";
+              } elsif ($hv_domain ne '') {
                 my $dq = sieve_quote($hv_domain);
                 $cond1 = "address :domain :is [\"from\",\"to\",\"cc\"] \"$dq\"";
               } else {
@@ -196,7 +218,10 @@
             # No "Header: value" structure: prefer address match only if email/domain-like
             my $hv_simple = simplify_email_value($h);
             my $hv_domain = extract_domain($hv_simple);
-            if ($hv_domain ne '') {
+            if (is_full_email($hv_simple)) {
+              my $aq = sieve_quote($hv_simple);
+              $cond1 = "address :is [\"from\",\"to\",\"cc\"] \"$aq\"";
+            } elsif ($hv_domain ne '') {
               my $dq = sieve_quote($hv_domain);
               $cond1 = "address :domain :is [\"from\",\"to\",\"cc\"] \"$dq\"";
             } else {
@@ -258,23 +283,36 @@
                 my $hv2_simple = simplify_email_value($hv2);
                 my $hv2_domain = extract_domain($hv2_simple);
 
-                if ($all_addr2 && $hv2_domain ne '') {
+                if ($all_addr2) {
                   my @lb2 = map { lc $_ } @hn2;
                   my $hn2_list = join '","', @lb2;
-                  my $dq2 = sieve_quote($hv2_domain);
-                  $cond2 = "address :domain :is [\"$hn2_list\"] \"$dq2\"";
+                  if (is_full_email($hv2_simple)) {
+                    my $aq2 = sieve_quote($hv2_simple);
+                    $cond2 = "address :is [\"$hn2_list\"] \"$aq2\"";
+                  } elsif ($hv2_domain ne '') {
+                    my $dq2 = sieve_quote($hv2_domain);
+                    $cond2 = "address :domain :is [\"$hn2_list\"] \"$dq2\"";
+                  } else {
+                    my @hn2_q = map { sieve_quote($_) } @hn2;
+                    my $hn2_list_q = join '","', @hn2_q;
+                    my $hv2_re = sieve_regex_passthrough($hv2);
+                    $cond2 = "header :regex [\"$hn2_list_q\"] \"$hv2_re\"";
+                  }
                 } else {
                   my @hn2_q = map { sieve_quote($_) } @hn2;
-                  my $hn2_list = join '","', @hn2_q;
+                  my $hn2_list_q = join '","', @hn2_q;
                   my $hv2_re = sieve_regex_passthrough($hv2);
-                  $cond2 = "header :regex [\"$hn2_list\"] \"$hv2_re\"";
+                  $cond2 = "header :regex [\"$hn2_list_q\"] \"$hv2_re\"";
                 }
               }
               else {
                 # No valid header names: prefer address match only if email/domain-like
                 my $hv2_simple = simplify_email_value($hh);
                 my $hv2_domain = extract_domain($hv2_simple);
-                if ($hv2_domain ne '') {
+                if (is_full_email($hv2_simple)) {
+                  my $aq2 = sieve_quote($hv2_simple);
+                  $cond2 = "address :is [\"from\",\"to\",\"cc\"] \"$aq2\"";
+                } elsif ($hv2_domain ne '') {
                   my $dq2 = sieve_quote($hv2_domain);
                   $cond2 = "address :domain :is [\"from\",\"to\",\"cc\"] \"$dq2\"";
                 } else {
@@ -288,7 +326,10 @@
               # No "Header: value" structure: prefer address match only if email/domain-like
               my $hv2_simple = simplify_email_value($hh);
               my $hv2_domain = extract_domain($hv2_simple);
-              if ($hv2_domain ne '') {
+              if (is_full_email($hv2_simple)) {
+                my $aq2 = sieve_quote($hv2_simple);
+                $cond2 = "address :is [\"from\",\"to\",\"cc\"] \"$aq2\"";
+              } elsif ($hv2_domain ne '') {
                 my $dq2 = sieve_quote($hv2_domain);
                 $cond2 = "address :domain :is [\"from\",\"to\",\"cc\"] \"$dq2\"";
               } else {
