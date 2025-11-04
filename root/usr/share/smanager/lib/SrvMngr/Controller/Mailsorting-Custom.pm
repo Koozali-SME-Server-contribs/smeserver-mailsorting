@@ -173,7 +173,7 @@ sub get_filtertype{
 	$cdb  = esmith::ConfigDB::UTF8->open();
 	$adb = esmith::AccountsDB::UTF8->open || die "Couldn't open accounts db";
 	#Either the filtertype is set per user or it is global
-	my $globalFilterType = $cdb->get_prop('qmail', "FilterType");
+	my $globalFilterType = $cdb->get_prop('postfix', "FilterType");
 	if (! $globalFilterType) {
 		return $adb->get_prop($PanelUser,'FilterType') || ''
 	} else {

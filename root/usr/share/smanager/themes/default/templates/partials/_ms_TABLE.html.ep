@@ -15,7 +15,7 @@
 	%= form_for "mailsortingu" => (method => 'POST') => begin
 		% param 'trt' => $ms_data->{trt} unless param 'trt';
 		%= hidden_field 'trt' => $ms_data->{trt}
-		%= hidden_field 'account' => $c->{account}
+		%= hidden_field 'account' => $ms_data->{account}
 		%# Inputs etc in here.
 
 		<h1 class='head'><%=l('ms_Mail_sorting_rules')%></h1>
@@ -89,15 +89,15 @@
 		<br />
 	
 		<div class = 'inline-buttons'>
-			<a href='mailsortingd?trt=RULES' class='link link1'>
+				<a href='mailsortingd?trt=RULES&account=<%= $ms_data->{account} %>' class='link link1'>
 				%= l('ms_Add_new_rule')
 			</a>
 			% if ($filterstr eq "Dovecot Sieve"){
-				<a href='mailsortingx?ApplyRules' class='link link1'>
+				<a href='mailsortingx?ApplyRules&account=<%= $ms_data->{account} %>' class='link link1'>
 					%= l('ms_Apply_Sieve');
 				</a>
 			% }
-			%#	<a href='mailsortingx?ReSerialise' class='link link1'>
+			%#	<a href='mailsortingx?ReSerialise&account=<%= $ms_data->{account} %>' class='link link1'>
 					%#= l('ms_Re_Serialise');
 			%#  </a>
 			
