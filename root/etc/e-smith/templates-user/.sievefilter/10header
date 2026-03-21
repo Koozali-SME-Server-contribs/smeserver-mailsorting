@@ -1,6 +1,0 @@
-{
-    $OUT .= "# ---- Dovecot Sieve: Defaults and requirements --------\n";
-    $OUT .= "# Generated for user: $USERNAME\n";
-    $OUT .= "# Sieve support (system): $sievesupport, Sieve (user): $sieveuser\n";
-    $OUT .= "require [\"fileinto\", \"copy\", \"regex\", \"relational\", \"comparator-i;ascii-numeric\", \"duplicate\", \"envelope\", \"mime\"];\n";
-}

@@ -6,7 +6,7 @@ Summary: Lets users configure procmail or maildrop rules.
 %define name smeserver-mailsorting
 Name: %{name}
 %define version 11.0.0
-%define release 8
+%define release 10
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -23,6 +23,8 @@ Requires: perl-File-Find-Rule >= 0.33
 Requires: maildrop
 Requires: procmail
 Requires: perl-Encode-IMAPUTF7
+Requires: smeserver-dovecot >= 11.0.0-19
+Requires: smeserver-spamassassin >= 11.0.0-13
 #Requires:  smeserver-userpanel, userpanel causes endless problems
 BuildRequires: smeserver-devtools >= 1.13.1-03
 AutoReqProv: no
@@ -32,6 +34,14 @@ SME Server enhancement to enable procmail or maildrop filtering for users.
 Optionally provides user panels where users can create mail rules for themselves
 
 %changelog
+* Fri Mar 20 2026 Brian Read <brianr@koozali.org> 11.0.0-10.sme
+- Add sieve template fragment to include .sievefiler in .before.sieve [SME: 13480]
+
+* Thu Feb 05 2026 Brian Read <brianr@koozali.org> 11.0.0-9.sme
+- change menu entry to mail sorting [SME: 13420]
+- Sort out Lex file for TO_ in match against dropdown [SME: 13421]
+- Look at translation of Subject/email address to rule in dovecote-sieve [SME: ]
+
 * Tue Nov 04 2025 Brian Read <brianr@koozali.org> 11.0.0-8.sme
 - Add defaults for postfix/FilterType and qmail/FilterType [SME: 13267]
 - Make mailsorting use postfix/FilterType for global filter value [SME: 13267]

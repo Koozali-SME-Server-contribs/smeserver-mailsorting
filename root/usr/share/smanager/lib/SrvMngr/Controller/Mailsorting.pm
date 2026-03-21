@@ -6,7 +6,7 @@ package SrvMngr::Controller::Mailsorting;
 #
 #----------------------------------------------------------------------
 # heading     : User management
-# description : Process Mail
+# description : Mail sorting
 # navigation  : 6000 1200
 # menucat : U
 #
