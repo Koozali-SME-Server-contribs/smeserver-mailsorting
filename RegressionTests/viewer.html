@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regression Test Cases Viewer</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 16px; background: #fafafa; }
+    .topbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    button { padding: 8px 12px; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 14px; }
+    .meta { display: grid; grid-template-columns: 200px 1fr; gap: 8px 12px; margin-bottom: 12px; }
+    .label { color: #444; font-weight: bold; }
+    .value { color: #111; word-break: break-word; }
+    pre { background: #111; color: #0f0; padding: 12px; border-radius: 8px; overflow: auto; white-space: pre-wrap; }
+    .footer { margin-top: 12px; color: #666; font-size: 12px; }
+    @media (max-width: 600px) { .meta { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button id="btnPrev" type="button">← Back</button>
+    <button id="btnNext" type="button">Forward →</button>
+    <div id="counter" style="font-weight:bold;">Loading…</div>
+  </div>
+
+  <div class="card" id="card">
+    <div class="meta">
+      <div class="label">id</div><div class="value" id="f_id"></div>
+      <div class="label">expect</div><div class="value" id="f_expect"></div>
+
+      <div class="label">basis</div><div class="value" id="f_basis"></div>
+      <div class="label">criterion</div><div class="value" id="f_criterion"></div>
+
+      <div class="label">basis2</div><div class="value" id="f_basis2"></div>
+      <div class="label">criterion2</div><div class="value" id="f_criterion2"></div>
+
+      <div class="label">copy</div><div class="value" id="f_copy"></div>
+      <div class="label">action</div><div class="value" id="f_action"></div>
+
+      <div class="label">action2</div><div class="value" id="f_action2"></div>
+      <div class="label">deliver</div><div class="value" id="f_deliver"></div>
+
+      <div class="label">deliver2</div><div class="value" id="f_deliver2"></div>
+    </div>
+
+    <div class="label" style="margin-bottom:6px;">expected_sieve</div>
+    <pre id="f_expected"></pre>
+  </div>
+
+  <div class="footer" id="footer"></div>
+
+  <script>
+    // Change this path if needed:
+    const jsonUrl = "output/regression_test_cases.json";
+
+    let items = [];
+    let index = 0;
+
+    const el = {
+      btnPrev: document.getElementById("btnPrev"),
+      btnNext: document.getElementById("btnNext"),
+      counter: document.getElementById("counter"),
+      footer: document.getElementById("footer"),
+
+      f_id: document.getElementById("f_id"),
+      f_expect: document.getElementById("f_expect"),
+      f_basis: document.getElementById("f_basis"),
+      f_criterion: document.getElementById("f_criterion"),
+      f_basis2: document.getElementById("f_basis2"),
+      f_criterion2: document.getElementById("f_criterion2"),
+      f_copy: document.getElementById("f_copy"),
+      f_action: document.getElementById("f_action"),
+      f_action2: document.getElementById("f_action2"),
+      f_deliver: document.getElementById("f_deliver"),
+      f_deliver2: document.getElementById("f_deliver2"),
+      f_expected: document.getElementById("f_expected"),
+    };
+
+    function setText(node, value) {
+      node.textContent = (value === undefined || value === null) ? "" : String(value);
+    }
+
+    function render() {
+      if (!items.length) {
+        el.counter.textContent = "0 / 0";
+        el.footer.textContent = "No entries found.";
+        el.btnPrev.disabled = true;
+        el.btnNext.disabled = true;
+        return;
+      }
+
+      const item = items[index];
+
+      el.counter.textContent = (index + 1) + " / " + items.length;
+      el.footer.textContent = "Showing entry index " + index;
+
+      setText(el.f_id, item.id);
+      setText(el.f_expect, item.expect);
+
+      setText(el.f_basis, item.basis);
+      setText(el.f_criterion, item.criterion);
+
+      setText(el.f_basis2, item.basis2);
+      setText(el.f_criterion2, item.criterion2);
+
+      setText(el.f_copy, item.copy);
+      setText(el.f_action, item.action);
+
+      setText(el.f_action2, item.action2);
+      setText(el.f_deliver, item.deliver);
+
+      setText(el.f_deliver2, item.deliver2);
+
+      setText(el.f_expected, item.expected_sieve);
+
+      el.btnPrev.disabled = index === 0;
+      el.btnNext.disabled = index === items.length - 1;
+    }
+
+    async function loadJson() {
+      el.counter.textContent = "Loading…";
+      try {
+        const resp = await fetch(jsonUrl, { cache: "no-store" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        items = await resp.json();
+        if (!Array.isArray(items)) throw new Error("JSON is not an array");
+        index = 0;
+        render();
+      } catch (e) {
+        el.counter.textContent = "Error";
+        el.footer.textContent = "Failed to load JSON: " + e.message;
+        el.btnPrev.disabled = true;
+        el.btnNext.disabled = true;
+      }
+    }
+
+    el.btnPrev.addEventListener("click", () => {
+      if (index > 0) {
+        index -= 1;
+        render();
+      }
+    });
+
+    el.btnNext.addEventListener("click", () => {
+      if (index < items.length - 1) {
+        index += 1;
+        render();
+      }
+    });
+
+    // Optional keyboard navigation
+    window.addEventListener("keydown", (ev) => {
+      if (ev.key === "ArrowLeft") el.btnPrev.click();
+      if (ev.key === "ArrowRight") el.btnNext.click();
+    });
+
+    loadJson();
+  </script>
+</body>
+</html>

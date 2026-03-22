@@ -1,0 +1,286 @@
+{
+  "total": 31,
+  "passed": 0,
+  "failed": 0,
+  "items": [
+    {
+      "id": "T01",
+      "ok": true,
+      "expected_len": 236,
+      "actual_len": 236,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"hello world\", header :mime :contains \"Subject\" \"hello world\") {\n  fileinto \"Inbox.General\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"hello world\", header :mime :contains \"Subject\" \"hello world\") {\n  fileinto \"Inbox.General\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T02",
+      "ok": true,
+      "expected_len": 236,
+      "actual_len": 236,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"hello_world\", header :mime :contains \"Subject\" \"hello world\") {\n  fileinto \"Inbox.General\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"hello_world\", header :mime :contains \"Subject\" \"hello world\") {\n  fileinto \"Inbox.General\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T03",
+      "ok": true,
+      "expected_len": 193,
+      "actual_len": 193,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :all :contains \"from\" \"alice@example.com\" {\n  redirect \"alice@example.com\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :all :contains \"from\" \"alice@example.com\" {\n  redirect \"alice@example.com\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T04",
+      "ok": true,
+      "expected_len": 184,
+      "actual_len": 184,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :all :contains \"to\" \"sales@example.com\" {\n  fileinto \"Mail.Sales\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :all :contains \"to\" \"sales@example.com\" {\n  fileinto \"Mail.Sales\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T05",
+      "ok": true,
+      "expected_len": 179,
+      "actual_len": 179,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :all :contains \"cc\" \"example.com\" {\n  fileinto \"Mail.Domain\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :all :contains \"cc\" \"example.com\" {\n  fileinto \"Mail.Domain\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T06",
+      "ok": true,
+      "expected_len": 174,
+      "actual_len": 174,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject\"] \"invoice\" {\n  fileinto \"Mail.Invoice\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject\"] \"invoice\" {\n  fileinto \"Mail.Invoice\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T07",
+      "ok": true,
+      "expected_len": 176,
+      "actual_len": 176,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :is [\"from\"] \"alice@example.com\" {\n  fileinto \"Mail.From\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :is [\"from\"] \"alice@example.com\" {\n  fileinto \"Mail.From\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T08",
+      "ok": true,
+      "expected_len": 180,
+      "actual_len": 180,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :domain :is [\"from\"] \"example.com\" {\n  fileinto \"Mail.Domain\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :domain :is [\"from\"] \"example.com\" {\n  fileinto \"Mail.Domain\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T09",
+      "ok": true,
+      "expected_len": 170,
+      "actual_len": 170,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject\"] \"[A.B]\" {\n  fileinto \"Mail.Regex\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject\"] \"[A.B]\" {\n  fileinto \"Mail.Regex\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T10",
+      "ok": true,
+      "expected_len": 186,
+      "actual_len": 186,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :is [\"from\",\"to\"] \"alice@example.com\" {\n  fileinto \"Mail.MultiAddr\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :is [\"from\",\"to\"] \"alice@example.com\" {\n  fileinto \"Mail.MultiAddr\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T11",
+      "ok": true,
+      "expected_len": 153,
+      "actual_len": 153,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif size :under 1024 {\n  fileinto \"Mail.Small\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif size :under 1024 {\n  fileinto \"Mail.Small\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "T12",
+      "ok": true,
+      "expected_len": 152,
+      "actual_len": 152,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif size :over 2048 {\n  fileinto \"Mail.Large\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif size :over 2048 {\n  fileinto \"Mail.Large\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X01",
+      "ok": true,
+      "expected_len": 198,
+      "actual_len": 198,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (address :all :contains [\"to\",\"cc\",\"bcc\"] \"john.doe\") {\n  fileinto \"Mail.ToCcBcc\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (address :all :contains [\"to\",\"cc\",\"bcc\"] \"john.doe\") {\n  fileinto \"Mail.ToCcBcc\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X02",
+      "ok": true,
+      "expected_len": 234,
+      "actual_len": 234,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"a\\\\\\\"b\\\\\\\\c\", header :mime :contains \"Subject\" \"a\\\\\\\"b\\\\\\\\c\") {\n  fileinto \"Mail.Escape\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"a\\\\\\\"b\\\\\\\\c\", header :mime :contains \"Subject\" \"a\\\\\\\"b\\\\\\\\c\") {\n  fileinto \"Mail.Escape\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X03",
+      "ok": true,
+      "expected_len": 238,
+      "actual_len": 238,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"[brackets].dot\", header :mime :contains \"Subject\" \"[brackets].dot\") {\n  fileinto \"Mail.Meta\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"[brackets].dot\", header :mime :contains \"Subject\" \"[brackets].dot\") {\n  fileinto \"Mail.Meta\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X04",
+      "ok": true,
+      "expected_len": 183,
+      "actual_len": 183,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :is [\"from\"] \"alice@example.com\" {\n  fileinto \"Mail.DisplayName\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :is [\"from\"] \"alice@example.com\" {\n  fileinto \"Mail.DisplayName\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X05",
+      "ok": true,
+      "expected_len": 186,
+      "actual_len": 186,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :domain :is [\"from\"] \"example.co.uk\" {\n  fileinto \"Mail.BareDomain\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :domain :is [\"from\"] \"example.co.uk\" {\n  fileinto \"Mail.BareDomain\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X06",
+      "ok": true,
+      "expected_len": 182,
+      "actual_len": 182,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"From\"] \"not-an-email\" {\n  fileinto \"Mail.RegexFallback\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"From\"] \"not-an-email\" {\n  fileinto \"Mail.RegexFallback\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X07",
+      "ok": true,
+      "expected_len": 291,
+      "actual_len": 291,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \": malformed\", header :mime :contains \"Subject\" \": malformed\", address :all :contains [\"from\",\"to\",\"cc\"] \": malformed\") {\n  fileinto \"Mail.NoName\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \": malformed\", header :mime :contains \"Subject\" \": malformed\", address :all :contains [\"from\",\"to\",\"cc\"] \": malformed\") {\n  fileinto \"Mail.NoName\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X08",
+      "ok": true,
+      "expected_len": 229,
+      "actual_len": 229,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"こんにちは世界\", header :mime :contains \"Subject\" \"こんにちは世界\") {\n  fileinto \"Mail.UnicodeJP\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"こんにちは世界\", header :mime :contains \"Subject\" \"こんにちは世界\") {\n  fileinto \"Mail.UnicodeJP\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X09",
+      "ok": true,
+      "expected_len": 249,
+      "actual_len": 249,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"Grüße aus München\", header :mime :contains \"Subject\" \"Grüße aus München\") {\n  fileinto \"Mail.UnicodeDE\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif anyof (header :contains \"Subject\" \"Grüße aus München\", header :mime :contains \"Subject\" \"Grüße aus München\") {\n  fileinto \"Mail.UnicodeDE\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X10",
+      "ok": true,
+      "expected_len": 190,
+      "actual_len": 190,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject\"] \"naïve café résumé\" {\n  fileinto \"Mail.UnicodeHeader\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject\"] \"naïve café résumé\" {\n  fileinto \"Mail.UnicodeHeader\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X11",
+      "ok": true,
+      "expected_len": 324,
+      "actual_len": 324,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  fileinto :copy \"Mail.CopyKeep\";\n  keep;\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  fileinto :copy \"Mail.CopyKeep\";\n  keep;\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X12",
+      "ok": true,
+      "expected_len": 293,
+      "actual_len": 293,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  discard;\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  discard;\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X13",
+      "ok": true,
+      "expected_len": 351,
+      "actual_len": 351,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  fileinto :copy \"Mail.Primary\";\n  redirect \"secondary@example.com\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  fileinto :copy \"Mail.Primary\";\n  redirect \"secondary@example.com\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X14",
+      "ok": true,
+      "expected_len": 339,
+      "actual_len": 339,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  # unsupported action \"bogus\"; keeping in INBOX\n  keep;\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  # unsupported action \"bogus\"; keeping in INBOX\n  keep;\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X15",
+      "ok": true,
+      "expected_len": 356,
+      "actual_len": 356,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  fileinto :copy \"Mail.Primary\";\n  # unsupported secondary action \"bogus\"\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif allof (anyof (header :contains \"Subject\" \"foo\", header :mime :contains \"Subject\" \"foo\"), anyof (header :contains \"Subject\" \"bar\", header :mime :contains \"Subject\" \"bar\")) {\n  fileinto :copy \"Mail.Primary\";\n  # unsupported secondary action \"bogus\"\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X16",
+      "ok": true,
+      "expected_len": 186,
+      "actual_len": 186,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :is [\"from\",\"to\"] \"alice@example.com\" {\n  fileinto \"Mail.PipeNames\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif address :is [\"from\",\"to\"] \"alice@example.com\" {\n  fileinto \"Mail.PipeNames\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X17",
+      "ok": true,
+      "expected_len": 182,
+      "actual_len": 182,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject.*\"] \"hello\" {\n  fileinto \"Mail.RegexHeaderName\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject.*\"] \"hello\" {\n  fileinto \"Mail.RegexHeaderName\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X18",
+      "ok": true,
+      "expected_len": 185,
+      "actual_len": 185,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject\"] \"emoji 😀 and accent é\" {\n  fileinto \"Mail.Emoji\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"Subject\"] \"emoji 😀 and accent é\" {\n  fileinto \"Mail.Emoji\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    },
+    {
+      "id": "X19",
+      "ok": true,
+      "expected_len": 196,
+      "actual_len": 196,
+      "expected_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"^.*$\"] \"btrfs-progs\\\\.kdave\\\\.github\\\\.com\" {\n  fileinto \"Mail.btrfs\";\n  stop;\n}\n# End of User rule testrule",
+      "actual_text": "# ----  user Sieve rules (1)------------------\n\n# User rule testrule\nif header :regex [\"^.*$\"] \"btrfs-progs\\\\.kdave\\\\.github\\\\.com\" {\n  fileinto \"Mail.btrfs\";\n  stop;\n}\n# End of User rule testrule",
+      "returncode": 0
+    }
+  ]
+}

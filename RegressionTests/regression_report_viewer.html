@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regression Report Viewer</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 16px; background: #fafafa; }
+    .top { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom: 12px;}
+    .badge { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background: white; }
+    .badge strong { display:block; font-size: 20px; margin-bottom: 4px; }
+    .toolbar { display:flex; gap:12px; align-items:center; margin: 12px 0; flex-wrap: wrap;}
+    table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #ddd; border-radius: 8px; overflow:hidden; }
+    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align:left; vertical-align: top; }
+    th { background: #f6f6f6; position: sticky; top: 0; z-index: 1; }
+    tr.fail { background: #fff3f3; }
+    tr.pass { background: #f3fff6; }
+    tr:hover { filter: brightness(0.99); }
+    .status { font-weight: bold; }
+    .status.pass { color: #0a7a1c; }
+    .status.fail { color: #b00020; }
+    .details {
+      margin-top: 12px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    pre { margin: 8px 0 0 0; background:#111; color:#0f0; padding:12px; border-radius: 8px; overflow:auto; white-space: pre-wrap; word-break: break-word; }
+    .muted { color:#666; font-size: 12px; }
+    .split { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+    .label { color:#444; font-weight:bold; margin-bottom: 6px;}
+  </style>
+</head>
+<body>
+  <h2>Regression Test Results</h2>
+
+  <div class="top">
+    <div class="badge"><strong id="bTotal">-</strong><span>Total</span></div>
+    <div class="badge"><strong id="bPassed">-</strong><span>Passed</span></div>
+    <div class="badge"><strong id="bFailed">-</strong><span>Failed</span></div>
+    <div class="badge"><strong id="bPercent">-</strong><span>Pass %</span></div>
+  </div>
+
+  <div class="toolbar">
+    <label><input type="checkbox" id="onlyFailed" /> Show only failed</label>
+    <span class="muted" id="loadingMsg">Loading...</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:120px;">ID</th>
+        <th style="width:110px;">Status</th>
+        <th style="width:120px;">Expected len</th>
+        <th style="width:120px;">Actual len</th>
+        <th>Diff</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <div class="details" id="details" style="display:none;">
+    <div class="label" id="dTitle">Details</div>
+    <div class="muted" id="dMeta"></div>
+    <div class="split">
+      <div>
+        <div class="label">Expected</div>
+        <pre id="dExpected"></pre>
+      </div>
+      <div>
+        <div class="label">Actual</div>
+        <pre id="dActual"></pre>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <div class="label">Diff snippet</div>
+      <pre id="dDiff"></pre>
+    </div>
+    <div class="muted" style="margin-top:8px;" id="dStderr"></div>
+  </div>
+
+  <script>
+    const reportUrl = "output/regression_report.json";
+
+    let items = [];
+    let report = null;
+    let onlyFailed = false;
+
+    const el = {
+      bTotal: document.getElementById("bTotal"),
+      bPassed: document.getElementById("bPassed"),
+      bFailed: document.getElementById("bFailed"),
+      bPercent: document.getElementById("bPercent"),
+      loadingMsg: document.getElementById("loadingMsg"),
+      onlyFailed: document.getElementById("onlyFailed"),
+      rows: document.getElementById("rows"),
+      details: document.getElementById("details"),
+      dTitle: document.getElementById("dTitle"),
+      dMeta: document.getElementById("dMeta"),
+      dExpected: document.getElementById("dExpected"),
+      dActual: document.getElementById("dActual"),
+      dDiff: document.getElementById("dDiff"),
+      dStderr: document.getElementById("dStderr"),
+    };
+
+    function escPre(s) {
+      if (s === undefined || s === null) return "(empty)";
+      return String(s);
+    }
+
+    function render() {
+      el.rows.innerHTML = "";
+      const filtered = items.filter(it => !onlyFailed || !it.ok);
+
+      el.loadingMsg.textContent = "Showing " + filtered.length + " / " + items.length;
+
+      filtered.forEach(it => {
+        const tr = document.createElement("tr");
+        tr.className = it.ok ? "pass" : "fail";
+        tr.style.cursor = "pointer";
+
+        tr.innerHTML = `
+          <td>${it.id || "(no id)"}</td>
+          <td><span class="status ${it.ok ? "pass" : "fail"}">${it.ok ? "PASS" : "FAIL"}</span></td>
+          <td>${it.expected_len ?? "-"}</td>
+          <td>${it.actual_len ?? "-"}</td>
+          <td>${(it.diff || "").replace(/[\r\n]+/g, " ").slice(0, 120)}</td>
+        `;
+
+        tr.addEventListener("click", () => {
+          el.details.style.display = "block";
+          el.dTitle.textContent = "Details for " + (it.id || "(no id)");
+          el.dMeta.textContent = "OK=" + it.ok + ", Expected len=" + (it.expected_len ?? "-") + ", Actual len=" + (it.actual_len ?? "-");
+
+          el.dExpected.textContent = escPre(it.expected_text);
+          el.dActual.textContent = escPre(it.actual_text);
+          el.dDiff.textContent = escPre(it.diff);
+          el.dStderr.textContent = it.stderr ? ("stderr: " + it.stderr) : "(no stderr)";
+        });
+
+        el.rows.appendChild(tr);
+      });
+    }
+
+    async function load() {
+      el.loadingMsg.textContent = "Loading...";
+      const resp = await fetch(reportUrl, { cache: "no-store" });
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      report = await resp.json();
+
+      items = Array.isArray(report.items) ? report.items : [];
+
+      el.bTotal.textContent = report.total ?? items.length;
+      el.bPassed.textContent = report.passed ?? 0;
+      el.bFailed.textContent = report.failed ?? 0;
+
+      const total = report.total ?? items.length;
+      const passed = report.passed ?? 0;
+      el.bPercent.textContent = total ? (Math.round((passed / total) * 1000) / 10) + "%" : "0%";
+
+      onlyFailed = false;
+      el.onlyFailed.checked = false;
+
+      render();
+    }
+
+    el.onlyFailed.addEventListener("change", (ev) => {
+      onlyFailed = ev.target.checked;
+      render();
+    });
+
+    load().catch(e => {
+      el.loadingMsg.textContent = "Failed to load: " + e.message;
+      console.error(e);
+    });
+  </script>
+</body>
+</html>

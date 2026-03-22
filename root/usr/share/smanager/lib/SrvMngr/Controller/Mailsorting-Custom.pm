@@ -41,7 +41,7 @@ my $pdb;
 		my $c = shift;
 		if (defined $c->param("ApplyRules")){
 			$user = $c->get_panel_user();
-			$res = qx(sieve-filter -W -u $user -e ~$user/.sievefilter INBOX expunge 2>&1 | tee /var/log/sieve-filter.log | grep -v "warning" | grep -v "left message in mailbox 'INBOX'"  |  wc -l);
+			$res = qx(sieve-filter -W -u $user -e ~$user/.before.sieve INBOX expunge 2>&1 | tee /var/log/sieve-filter.log | grep -v "warning" | grep -v "left message in mailbox 'INBOX'"  |  wc -l);
 			$ms_data{command_result} = ($res == 0) ? 'none' : $res;
 			$c->do_display('TABLE');
 		} elsif (defined $c->param("ReSerialise")) {
@@ -693,7 +693,7 @@ sub extract_rule_from_file {
 sub get_sieve_rule {
 	my $c = shift;
     my ($pdb, $key,$PanelUser) = @_;
-    return $c->extract_rule_from_file("~$PanelUser/.sievefilter",$key)
+    return $c->extract_rule_from_file("~$PanelUser/.before.sieve",$key)
 }
 
 sub get_procmail_rule {

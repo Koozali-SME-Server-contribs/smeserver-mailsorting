@@ -57,12 +57,57 @@
     }
 
     # Detect a full email address (simple, robust)
+    sub extract_full_email_or_empty {
+        my ($s) = @_;
+        $s //= '';
+        $s =~ s/^\s+|\s+$//g;
+        return '' if $s eq '';
+    
+        # Extract embedded address from: "John Doe <alice@example.com>"
+        if ($s =~ /<\s*([^@\s<>"',;]+@[^@\s<>"',;]+)\s*>/) {
+            $s = $1;
+        }
+    
+        # Validate as a bare email address
+        return ($s =~ /^[^@\s<>"',;]+@[^@\s<>"',;]+$/) ? $s : '';
+    }
+    
     sub is_full_email {
         my ($s) = @_;
         $s //= '';
         $s =~ s/^\s+|\s+$//g;
-        return ($s =~ /^[^@\s<>"',;]+@[^@\s<>"',;]+$/) ? 1 : 0;
+        return '' if $s eq '';
+    
+        if ($s =~ /<\s*([^@\s<>"',;]+@[^@\s<>"',;]+)\s*>/) {
+            return $1;
+        }
+    
+        if ($s =~ /^[^@\s<>"',;]+@[^@\s<>"',;]+$/) {
+            return $s;
+        }
+    
+        return '';
     }
+    
+    # Pull out an email address maybe embedded in < >
+    sub extract_email_address {
+    my ($s) = @_;
+    $s //= '';
+    $s =~ s/^\s+|\s+$//g;
+    return '' if $s eq '';
+
+    # common angle-bracket / display-name format
+    if ($s =~ /<\s*([^@\s<>"',;]+@[^@\s<>"',;]+)\s*>/) {
+        return $1;
+    }
+
+    # already plain email
+    if ($s =~ /^([^@\s<>"',;]+@[^@\s<>"',;]+)$/) {
+        return $1;
+    }
+
+    return '';
+}
 
     # Extract a domain from a simplified email-like string.
     # Returns '' if no clear domain found.
@@ -176,7 +221,7 @@
               if ($all_addr) {
                 my @lb = map { lc $_ } @hn;
                 my $hn_list = join '","', @lb;
-                if (is_full_email($hv_simple)) {
+                if ($hv_simple = is_full_email($hv_simple)) {
                   my $addr_q = sieve_quote($hv_simple);
                   $cond1 = "address :is [\"$hn_list\"] \"$addr_q\"";
                 } elsif ($hv_domain ne '') {
@@ -201,7 +246,7 @@
               # No valid header names extracted: prefer address match only if email/domain-like
               my $hv_simple = simplify_email_value($h);
               my $hv_domain = extract_domain($hv_simple);
-              if (is_full_email($hv_simple)) {
+              if ($hv_simple = is_full_email($hv_simple)) {
                 my $aq = sieve_quote($hv_simple);
                 $cond1 = "address :is [\"from\",\"to\",\"cc\"] \"$aq\"";
               } elsif ($hv_domain ne '') {
@@ -218,7 +263,7 @@
             # No "Header: value" structure: prefer address match only if email/domain-like
             my $hv_simple = simplify_email_value($h);
             my $hv_domain = extract_domain($hv_simple);
-            if (is_full_email($hv_simple)) {
+            if ($hv_simple = is_full_email($hv_simple)) {
               my $aq = sieve_quote($hv_simple);
               $cond1 = "address :is [\"from\",\"to\",\"cc\"] \"$aq\"";
             } elsif ($hv_domain ne '') {
@@ -240,14 +285,29 @@
             my %addr = map { $_ => 1 } qw(From To Cc Bcc Sender Reply-To Resent-From Resent-To Resent-Cc);
             if ($addr{$basis})
             {
-              my $lb = lc $basis;
-              $cond1 = "address :all :contains \"$lb\" \"$crit1\"";
-            }
-            else
-            {
-              $cond1 = "header :contains \"$basis\" \"$crit1\"";
-            }
+              my $lb = lc $basis;           
+              my $email = extract_email_address($crit1);
+              if ($email ne '')
+              {
+                # Use the extracted bare email (best for matching)
+                my $email_q = sieve_quote($email);
+                $cond1 = "address :all :contains \"$lb\" \"$email_q\"";
+              }
+              else
+              {
+                # Fall back: crit1 wasn't an email, so treat it as generic text
+                $cond1 = "address :all :contains \"$lb\" \"$crit1\"";
+              }
+            }          
           }
+        }
+        
+        # Fallback for unknown/unsupported basis:
+        # Must produce valid Sieve syntax that searches headers only.
+        if ($cond1 eq '')
+        {
+          my $p_re = sieve_regex_quote_basic($crit1);
+          $cond1 = 'header :regex ["^.*$"] "' . $p_re . '"';
         }
 
         # build condition 2 if present
@@ -286,7 +346,7 @@
                 if ($all_addr2) {
                   my @lb2 = map { lc $_ } @hn2;
                   my $hn2_list = join '","', @lb2;
-                  if (is_full_email($hv2_simple)) {
+                  if ($hv2_simple = is_full_email($hv2_simple)) {
                     my $aq2 = sieve_quote($hv2_simple);
                     $cond2 = "address :is [\"$hn2_list\"] \"$aq2\"";
                   } elsif ($hv2_domain ne '') {
@@ -309,7 +369,7 @@
                 # No valid header names: prefer address match only if email/domain-like
                 my $hv2_simple = simplify_email_value($hh);
                 my $hv2_domain = extract_domain($hv2_simple);
-                if (is_full_email($hv2_simple)) {
+                if ($hv2_simple = is_full_email($hv2_simple)) {
                   my $aq2 = sieve_quote($hv2_simple);
                   $cond2 = "address :is [\"from\",\"to\",\"cc\"] \"$aq2\"";
                 } elsif ($hv2_domain ne '') {
@@ -326,7 +386,7 @@
               # No "Header: value" structure: prefer address match only if email/domain-like
               my $hv2_simple = simplify_email_value($hh);
               my $hv2_domain = extract_domain($hv2_simple);
-              if (is_full_email($hv2_simple)) {
+              if ($hv2_simple = is_full_email($hv2_simple)) {
                 my $aq2 = sieve_quote($hv2_simple);
                 $cond2 = "address :is [\"from\",\"to\",\"cc\"] \"$aq2\"";
               } elsif ($hv2_domain ne '') {
@@ -355,6 +415,12 @@
                 $cond2 = "header :contains \"$basis2\" \"$crit2\"";
               }
             }
+          }
+        
+          if ($cond2 eq '')
+          {
+            my $p2_re = sieve_regex_quote_basic($crit2);   # treat criterion2 as literal text
+            $cond2 = 'header :regex ["^.*$"] "' . $p_re . '"';
           }
         }
 

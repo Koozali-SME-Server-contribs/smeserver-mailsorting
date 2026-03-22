@@ -63,7 +63,7 @@ foreach my $userName (@users)
 	next;
     }
 
-    for my $dotfile ( qw(.procmailrc .mailfilter .sievefilter) )
+    for my $dotfile ( qw(.procmailrc .mailfilter .before.sieve) )
     {
         my $pathtohome = ($userName eq 'admin')? "/home/e-smith":"/home/e-smith/files/users/$userName";
 
