@@ -199,7 +199,7 @@ sub filter_status
     my $self = shift;
     my $q = $self->{cgi};
 
-    my $FilterType = $db->get_prop('qmail', "FilterType") || 'Disabled';
+    my $FilterType = $db->get_prop('postfix', "FilterType") || 'Disabled';
 
     if ($FilterType eq 'Disabled')
     {

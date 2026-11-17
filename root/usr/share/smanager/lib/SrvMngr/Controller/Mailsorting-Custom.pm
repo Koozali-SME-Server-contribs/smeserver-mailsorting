@@ -475,7 +475,7 @@ sub get_Folders {
     my $c = shift;
     my $folders_hashref = $c->listfolders();
     # Convert hashref to arrayref of arrayrefs for Mojolicious select
-    my @options = map { [ $_, $folders_hashref->{$_} ] } sort keys %$folders_hashref;
+    my @options = map { [ $folders_hashref->{$_}, $_ ] } sort keys %$folders_hashref;
     return \@options;
 }
 
