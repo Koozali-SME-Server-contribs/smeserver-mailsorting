@@ -6,7 +6,7 @@ Summary: Lets users configure procmail or maildrop rules.
 %define name smeserver-mailsorting
 Name: %{name}
 %define version 11.0.0
-%define release 12
+%define release 13
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -34,6 +34,9 @@ SME Server enhancement to enable procmail or maildrop filtering for users.
 Optionally provides user panels where users can create mail rules for themselves
 
 %changelog
+* Tue Nov 17 2026 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-13.sme
+- fix templates to use postfix FilterType [SME: 13835]
+
 * Tue Nov 17 2026 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-12.sme
 - fix folder selection in sm2 [SME: 13833]
 - fix mess up FilterType setting [SME: 13835]

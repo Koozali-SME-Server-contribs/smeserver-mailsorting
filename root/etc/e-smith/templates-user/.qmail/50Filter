@@ -18,11 +18,11 @@
             if ($EmailForward eq 'forward');
     }
 
-if ($qmail{FilterType})
+if ($postfix{FilterType})
 {
-  return '| /usr/bin/procmail ~/.procmailrc ; if [ $? -ne 0 ] ; then exit -1; else exit 99; fi;' if ($qmail{FilterType} eq 'procmail');
-  return '| /usr/bin/maildrop ; if [ $? -ne 0 ] ; then exit -1; else exit 99; fi;' if ($qmail{FilterType} eq 'maildrop');
-  return '| /var/qmail/bin/preline -f /usr/libexec/dovecot/dovecot-lda -a "$RECIPIENT" -d "$USER" ; if [ $? -ne 0 ] ; then exit -1; else exit 99; fi;' if ($qmail{FilterType} eq 'sieve');
+  return '| /usr/bin/procmail ~/.procmailrc ; if [ $? -ne 0 ] ; then exit -1; else exit 99; fi;' if ($postfix{FilterType} eq 'procmail');
+  return '| /usr/bin/maildrop ; if [ $? -ne 0 ] ; then exit -1; else exit 99; fi;' if ($postfix{FilterType} eq 'maildrop');
+  return '| /var/qmail/bin/preline -f /usr/libexec/dovecot/dovecot-lda -a "$RECIPIENT" -d "$USER" ; if [ $? -ne 0 ] ; then exit -1; else exit 99; fi;' if ($postfix{FilterType} eq 'sieve');
 }
     return '# Procmail/Maildrop/sieve disabled for all users'
   }
